@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>QuizMon: Legends of Knowledge</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;background:#000;overflow:hidden;}
+body{display:flex;align-items:center;justify-content:center;}
+#game{width:100vw;height:100vh;position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;font-family:monospace;}
+.screen{display:none;width:100%;height:100%;position:absolute;top:0;left:0;}
+.screen.active{display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.pf{font-family:'Press Start 2P',monospace;}
+.pbtn{font-family:'Press Start 2P',monospace;border:3px solid;cursor:pointer;padding:12px 28px;font-size:11px;background:transparent;letter-spacing:1px;transition:transform .1s,box-shadow .1s;}
+.pbtn:hover{transform:translateY(-2px);}
+.pbtn-sm{font-size:8px;padding:7px 14px;border-width:2px;}
+.hpwrap{width:100%;margin-bottom:4px;}
+.hplabel{font-family:'Press Start 2P',monospace;font-size:8px;color:#bbb;margin-bottom:3px;}
+.hpbg{background:#111;border:2px solid #444;height:13px;}
+.hpfill{height:100%;transition:width .3s,background .3s;}
+#menu{background:linear-gradient(180deg,#0a0a1a,#1a0a2e);}
+#menu-title{font-family:'Press Start 2P',monospace;font-size:clamp(20px,4vw,36px);color:#ffd700;text-shadow:3px 3px 0 #b8860b,0 0 24px #ffd700;margin-bottom:6px;}
+#menu-sub{font-family:'Press Start 2P',monospace;font-size:clamp(9px,1.5vw,13px);color:#c9a0dc;text-shadow:2px 2px 0 #6a0dad;margin-bottom:40px;}
+.star{position:absolute;width:3px;height:3px;background:#fff;border-radius:50%;pointer-events:none;}
+#charsel{background:linear-gradient(180deg,#0a1628,#0d2137);gap:0;}
+.char-grid{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:20px 0 24px;}
+.ccard{border:3px solid #333;padding:16px 14px;cursor:pointer;text-align:center;width:190px;background:#0a0a1a;transition:all .15s;}
+.ccard:hover{transform:translateY(-4px);}
+.cname{font-family:'Press Start 2P',monospace;font-size:11px;margin-bottom:6px;}
+.cdesc{font-size:10px;color:#999;margin-bottom:10px;line-height:1.5;}
+.cstats{font-size:10px;color:#aaa;line-height:1.8;text-align:left;}
+#explore{padding:0;position:relative;}
+#world-canvas{position:absolute;top:0;left:0;display:block;image-rendering:pixelated;}
+#hud{position:absolute;top:0;left:0;right:0;padding:6px 12px;background:rgba(0,0,0,.8);display:flex;align-items:center;gap:14px;z-index:10;}
+#hud .hpwrap{flex:1;max-width:240px;margin:0;}
+#hud-biome{font-family:'Press Start 2P',monospace;font-size:8px;white-space:nowrap;}
+#hud-bosses{font-family:'Press Start 2P',monospace;font-size:8px;color:#ffd700;white-space:nowrap;}
+#hud-heal{font-family:'Press Start 2P',monospace;font-size:7px;color:#90ee90;display:none;animation:blink 1s ease-in-out infinite;}
+#minimap{position:absolute;right:10px;width:120px;height:70px;background:rgba(0,0,0,.8);border:2px solid #555;z-index:10;}
+#mm-canvas{display:block;}
+#joy{position:absolute;background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.2);border-radius:50%;z-index:20;touch-action:none;display:none;align-items:center;justify-content:center;}
+#joy-knob{background:rgba(255,255,255,.3);border-radius:50%;pointer-events:none;}
+#pause-explore-btn{position:absolute;z-index:20;}
+#intro-overlay{position:absolute;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:50;}
+#intro-box{background:#0d1117;border:3px solid #555;padding:28px 32px;text-align:center;max-width:440px;animation:fadeIn .3s ease;}
+#combat{background:#0a0a0a;padding:10px;gap:8px;align-items:stretch;justify-content:flex-start;}
+#c-header{display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+#c-arena{display:flex;gap:10px;flex-shrink:0;}
+#c-enemy-box,#c-player-box{flex:1;background:rgba(0,0,0,.45);border:2px solid #444;padding:10px;text-align:center;}
+#c-log{flex:1;background:rgba(0,0,0,.6);border:2px solid #333;padding:8px;height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;}
+.logline{font-size:10px;line-height:1.5;animation:fadeIn .2s ease;}
+#boss-tag{font-family:'Press Start 2P',monospace;font-size:7px;color:#ff4444;margin-bottom:4px;display:none;animation:pulse 1s ease-in-out infinite;}
+#c-actions{display:flex;gap:6px;flex-shrink:0;}
+.abtn{flex:1;background:transparent;border:2px solid;cursor:pointer;font-family:'Press Start 2P',monospace;font-size:7px;padding:9px 4px;line-height:1.9;transition:opacity .1s;}
+.abtn:hover{opacity:.75;}
+#flee-btn{background:rgba(40,40,40,.6);border:2px solid #555;color:#777;font-family:'Press Start 2P',monospace;font-size:7px;padding:9px 10px;cursor:pointer;}
+#q-panel{background:rgba(0,0,0,.9);border:2px solid #ffd700;padding:12px;display:none;flex-shrink:0;animation:fadeIn .2s ease;}
+#timer-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+#timer-bg{flex:1;background:#111;border:2px solid #333;height:12px;}
+#timer-fill{height:100%;transition:width 1s linear,background .3s;background:#4caf50;width:100%;}
+#timer-num{font-family:'Press Start 2P',monospace;font-size:13px;min-width:22px;text-align:right;color:#4caf50;}
+#q-meta{font-family:'Press Start 2P',monospace;font-size:7px;color:#ffd700;margin-bottom:4px;}
+#q-text{font-size:12px;color:#fff;margin-bottom:10px;line-height:1.5;}
+#q-opts{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.qopt{background:#1a1a2e;border:2px solid #444;color:#ddd;font-family:monospace;font-size:11px;padding:8px 10px;cursor:pointer;text-align:left;line-height:1.4;transition:background .12s;}
+.qopt:hover:not([disabled]){background:#2a2a4e;}
+.qopt.correct{background:#1b5e20!important;border-color:#4caf50!important;color:#fff!important;}
+.qopt.wrong{background:#7f0000!important;border-color:#f44336!important;color:#fff!important;}
+#q-result{margin-top:8px;font-family:'Press Start 2P',monospace;font-size:10px;text-align:center;display:none;animation:fadeIn .2s ease;}
+#paused{background:rgba(0,0,0,.96);}
+.modal-box{background:#0d1117;border:3px solid #444;padding:28px 36px;text-align:center;max-width:380px;width:90%;}
+#gameover{background:#0a0000;}
+#victory{background:linear-gradient(180deg,#0a0a1a,#1a1a00);overflow:hidden;}
+.vstar{position:absolute;font-size:20px;opacity:.7;animation:pulse 1s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="menu" class="screen active">
+    <div id="menu-stars"></div>
+    <canvas id="menu-sprite-canvas" width="200" height="80" style="image-rendering:pixelated;margin-bottom:10px;"></canvas>
+    <div id="menu-title">QuizMon</div>
+    <div id="menu-sub">Legends of Knowledge</div>
+    <button class="pbtn" id="btn-start" style="color:#ffd700;border-color:#ffd700">▶ START GAME</button>
+    <div style="margin-top:36px;font-family:'Press Start 2P',monospace;font-size:7px;color:#333">WASD to move • Walk into enemies to battle</div>
+  </div>
+
+  <div id="charsel" class="screen">
+    <div class="pf" style="font-size:15px;color:#4fc3f7;text-shadow:2px 2px 0 #01579b">Choose Your Hero</div>
+    <div style="font-size:11px;color:#445;margin-top:6px">Select your champion wisely</div>
+    <div class="char-grid" id="char-grid"></div>
+    <button class="pbtn pbtn-sm" id="btn-back" style="color:#777;border-color:#555">← Back</button>
+  </div>
+
+  <div id="explore" class="screen">
+    <canvas id="world-canvas"></canvas>
+    <div id="hud">
+      <div class="hpwrap" style="margin:0">
+        <div class="hplabel" id="hud-name">Player</div>
+        <div class="hpbg"><div class="hpfill" id="hud-hp" style="width:100%;background:#4caf50"></div></div>
+      </div>
+      <div id="hud-biome">🌲 Forest</div>
+      <div id="hud-bosses">👑 0/4</div>
+      <div id="hud-heal">💚 HEALING</div>
+      <button class="pbtn pbtn-sm" id="hud-pause-btn" style="color:#aaa;border-color:#555">⏸</button>
+    </div>
+    <div id="minimap"><canvas id="mm-canvas" width="120" height="70"></canvas></div>
+    <div id="joy"><div id="joy-knob"></div></div>
+    <button class="pbtn pbtn-sm" id="pause-explore-btn" style="color:#aaa;border-color:#555">⏸ PAUSE</button>
+    <div id="intro-overlay">
+      <div id="intro-box">
+        <canvas id="intro-sprite" width="96" height="96" style="image-rendering:pixelated;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;"></canvas>
+        <div id="intro-name" class="pf" style="font-size:14px;margin-bottom:8px">Forest</div>
+        <div id="intro-desc" style="font-size:11px;color:#bbb;margin-bottom:14px;line-height:1.5"></div>
+        <div id="intro-tip"  style="font-size:10px;color:#777;margin-bottom:20px;line-height:1.6"></div>
+        <button class="pbtn pbtn-sm" id="intro-go" style="color:#4caf50;border-color:#4caf50">⚔️ Let's Go!</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="combat" class="screen">
+    <div id="c-header">
+      <div id="c-title" class="pf" style="font-size:10px;color:#ff9800"></div>
+      <div id="c-biome" class="pf" style="font-size:8px;color:#666"></div>
+    </div>
+    <div id="c-arena">
+      <div id="c-enemy-box">
+        <div id="boss-tag">⚠️ BOSS BATTLE</div>
+        <canvas id="c-enemy-canvas" width="80" height="80" style="image-rendering:pixelated;display:block;margin:0 auto 6px;"></canvas>
+        <div class="hpwrap"><div class="hplabel" id="c-enemy-name">Enemy</div><div class="hpbg"><div class="hpfill" id="c-enemy-hp" style="width:100%;background:#4caf50"></div></div></div>
+        <div id="c-enemy-hptext" style="font-size:10px;color:#aaa;margin-top:2px"></div>
+      </div>
+      <div id="c-log"></div>
+      <div id="c-player-box">
+        <canvas id="c-player-canvas" width="80" height="80" style="image-rendering:pixelated;display:block;margin:0 auto 6px;"></canvas>
+        <div class="hpwrap"><div class="hplabel" id="c-player-name">Player</div><div class="hpbg"><div class="hpfill" id="c-player-hp" style="width:100%;background:#4caf50"></div></div></div>
+        <div id="c-player-hptext" style="font-size:10px;color:#aaa;margin-top:2px"></div>
+      </div>
+    </div>
+    <div id="c-actions">
+      <button class="abtn" id="act-attack" style="color:#ff9800;border-color:#ff9800">⚔️ Attack<br><span style="opacity:.6;font-size:6px">Normal dmg</span></button>
+      <button class="abtn" id="act-heavy"  style="color:#f44336;border-color:#f44336">💥 Heavy<br><span style="opacity:.6;font-size:6px">Crit dmg</span></button>
+      <button class="abtn" id="act-block"  style="color:#4fc3f7;border-color:#4fc3f7">🛡️ Block<br><span style="opacity:.6;font-size:6px">Reduce dmg</span></button>
+      <button class="abtn" id="act-dodge"  style="color:#ce93d8;border-color:#ce93d8">💨 Dodge<br><span style="opacity:.6;font-size:6px">Avoid dmg</span></button>
+      <button id="flee-btn">🏃 Flee</button>
+    </div>
+    <div id="q-panel">
+      <div id="timer-row">
+        <div id="timer-bg"><div id="timer-fill"></div></div>
+        <div id="timer-num">15</div>
+        <div class="pf" style="font-size:6px;color:#555">sec</div>
+      </div>
+      <div id="q-meta">CAT • DIFF</div>
+      <div id="q-text">Question</div>
+      <div id="q-opts">
+        <button class="qopt" id="qo0">A. —</button>
+        <button class="qopt" id="qo1">B. —</button>
+        <button class="qopt" id="qo2">C. —</button>
+        <button class="qopt" id="qo3">D. —</button>
+      </div>
+      <div id="q-result"></div>
+    </div>
+  </div>
+
+  <div id="paused" class="screen">
+    <div class="modal-box">
+      <div class="pf" style="font-size:18px;color:#ffd700;margin-bottom:8px;text-shadow:2px 2px 0 #b8860b">⏸ PAUSED</div>
+      <div id="p-biome" class="pf" style="font-size:8px;color:#666;margin-bottom:24px"></div>
+      <button class="pbtn" id="btn-resume" style="color:#4caf50;border-color:#4caf50;width:100%;margin-bottom:12px">▶ Resume</button>
+      <button class="pbtn" id="btn-to-menu" style="color:#f44336;border-color:#f44336;width:100%">🏠 Main Menu</button>
+      <div id="p-stats" class="pf" style="margin-top:18px;font-size:7px;color:#444"></div>
+    </div>
+  </div>
+
+  <div id="gameover" class="screen">
+    <canvas id="go-canvas" width="80" height="80" style="image-rendering:pixelated;margin-bottom:16px;filter:grayscale(1);opacity:.5;"></canvas>
+    <div class="pf" style="font-size:clamp(14px,3vw,22px);color:#f44336;margin-bottom:10px;text-shadow:2px 2px 0 #7f0000">You Have Fallen</div>
+    <div style="font-size:13px;color:#555;margin-bottom:40px">Your knowledge was not enough...</div>
+    <button class="pbtn" id="btn-go-menu" style="color:#f44336;border-color:#f44336">🏠 Main Menu</button>
+  </div>
+
+  <div id="victory" class="screen">
+    <div id="v-stars"></div>
+    <div style="font-size:80px;margin-bottom:14px;filter:drop-shadow(0 0 30px #ffd700);animation:pulse 1s ease-in-out infinite">🏆</div>
+    <div class="pf" style="font-size:clamp(11px,2vw,16px);color:#ffd700;margin-bottom:6px;text-align:center;text-shadow:2px 2px 0 #b8860b,0 0 20px #ffd700">You Have Mastered</div>
+    <div class="pf" style="font-size:clamp(11px,2vw,16px);color:#ffd700;margin-bottom:24px;text-shadow:2px 2px 0 #b8860b,0 0 20px #ffd700">Knowledge!</div>
+    <div style="font-size:13px;color:#ccc;margin-bottom:6px">All 4 Biome Bosses Defeated</div>
+    <div style="font-size:18px;color:#888;margin-bottom:36px">🌲 🏜️ ❄️ 🌋</div>
+    <button class="pbtn" id="btn-v-menu" style="color:#ffd700;border-color:#ffd700">🏠 Play Again</button>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// PIXEL ART SPRITE SYSTEM
+// Each sprite is a 16x16 pixel grid defined as color-indexed rows
+// ================================================================
+const PAL = {
+  // Skin tones
+  sk1:'#f4c78f', sk2:'#e8a96a', sk3:'#d4845a',
+  // Hair colors
+  h1:'#2a1a0a', h2:'#8B4513', h3:'#ffd700', h4:'#c0c0c0', h5:'#cc2222', h6:'#1a3a6a',
+  // Clothes
+  c1:'#1a3a8a', c2:'#8a1a1a', c3:'#1a6a2a', c4:'#6a1a6a', c5:'#8a6a1a', c6:'#555',
+  // Armor
+  a1:'#c0c0c0', a2:'#d4a017', a3:'#4fc3f7',
+  // Enemies - Forest
+  ef1:'#2d8b2d', ef2:'#1a5a1a', ef3:'#5aab5a', ef4:'#8B4513',
+  // Enemies - Desert
+  ed1:'#c8a44a', ed2:'#8b6914', ed3:'#e8d080', ed4:'#cc5500',
+  // Enemies - Ice
+  ei1:'#80deea', ei2:'#b0e0f0', ei3:'#4099aa', ei4:'#fff',
+  // Enemies - Volcano
+  ev1:'#cc2222', ev2:'#ff6600', ev3:'#880000', ev4:'#ff9900',
+  // Shared
+  eye:'#111', wt:'#fff', bl:'#000', rd:'#ff0000', ye:'#ffd700',
+  tr:'transparent',
+  // Terrain
+  gr:'#3a7a2a', gd:'#4a8a3a', st:'#888', dk:'#222', gy:'#666',
+  tn:'#8B7355', wt2:'#4499cc', sd:'#c8a44a', ic:'#b0d8f0', lv:'#cc3300',
+  ts:'#2a5a1a', td:'#7a5a20', ti:'#6a9ab0', tv:'#5a1a00',
+};
+
+// Sprite drawing: draw a 16x16 or NxN sprite scaled to target size
+// sprite = array of 16 strings, each 16 chars, each char maps to PAL key
+function drawSprite(ctx, sprite, x, y, scale, flipX=false, tint=null) {
+  const rows = sprite.length;
+  const cols = sprite[0].length;
+  ctx.save();
+  if(flipX) {
+    ctx.translate(x + cols*scale, y);
+    ctx.scale(-1, 1);
+    x = 0; y = 0;
+  } else {
+    ctx.translate(x, y);
+    x = 0; y = 0;
+  }
+  for(let r=0;r<rows;r++) {
+    for(let c=0;c<cols;c++) {
+      const ch = sprite[r][c];
+      if(ch === '.' || ch === ' ') continue;
+      const color = PAL[ch] || '#ff00ff';
+      ctx.fillStyle = tint || color;
+      ctx.fillRect(c*scale, r*scale, scale, scale);
+    }
+  }
+  ctx.restore();
+}
+
+// ================================================================
+// SPRITE DEFINITIONS (16x16 pixel art)
+// Key: each character = a palette entry key (2-char codes compressed to 1 char via lookup)
+// ================================================================
+
+// We'll use a simpler single-char lookup
+const C = {
+  // transparent
+  '.':null,
+  // skin
+  'S':'#f4c78f', 's':'#d4845a', 'k':'#e8a96a',
+  // hair/dark
+  'H':'#2a1a0a', 'h':'#8B4513', 'B':'#1a6a2a', 'b':'#1a3a8a',
+  // clothes blue
+  'u':'#2244aa', 'U':'#1a3a8a',
+  // clothes red
+  'r':'#aa2222', 'R':'#cc0000',
+  // clothes green
+  'g':'#1a6a2a', 'G':'#2a8a3a',
+  // clothes purple
+  'p':'#6a1a8a', 'P':'#9a3aaa',
+  // clothes brown/tan  
+  't':'#8B6914', 'T':'#c8a44a',
+  // armor silver
+  'A':'#c0c0c0', 'a':'#888888',
+  // gold
+  'Y':'#ffd700', 'y':'#b8860b',
+  // white
+  'W':'#ffffff', 'w':'#dddddd',
+  // black
+  'X':'#111111', 'x':'#333333',
+  // eye
+  'E':'#111111',
+  // green (nature/forest)
+  'n':'#3a8a3a', 'N':'#2a6a2a', 'm':'#5aab5a', 'M':'#1a4a1a',
+  // brown (earth)
+  'o':'#8B4513', 'O':'#5a2a05',
+  // blue (ice/water)
+  'i':'#80deea', 'I':'#4099aa', 'j':'#b0e8f8', 'J':'#2288aa',
+  // red/fire
+  'f':'#ff6600', 'F':'#cc2200', 'q':'#ff9900', 'Q':'#880000',
+  // sand/desert
+  'd':'#c8a44a', 'D':'#8b6914', 'c':'#e8d080', 'C':'#cc5500',
+  // Lava
+  'l':'#cc3300', 'L':'#ff5500',
+  // pink
+  'v':'#ff8888', 'V':'#ff4466',
+  // teal
+  'e':'#2aaa88', 'z':'#008866',
+};
+
+function px(ctx, sprite, x, y, scale, flipX=false) {
+  const rows = sprite.length;
+  const cols = sprite[0].length;
+  ctx.save();
+  if(flipX){ctx.translate(x+cols*scale,y);ctx.scale(-1,1);x=0;y=0;}
+  else{ctx.translate(x,y);x=0;y=0;}
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const ch=sprite[r][c];
+      if(ch==='.'||ch===' ')continue;
+      ctx.fillStyle=C[ch]||'#ff00ff';
+      ctx.fillRect(c*scale,r*scale,scale,scale);
+    }
+  }
+  ctx.restore();
+}
+
+// ================================================================
+// CHARACTER SPRITES (16x16)
+// ================================================================
+const SPRITES = {
+  // Scholar - blue robes, blonde hair
+  scholar:[
+    '....HHHHHH......',
+    '...HHHHHHHHH....',
+    '...HSHHHSSSH....',
+    '...HSSSSSSSH....',
+    '....SSEEESS.....',
+    '....SSWWWSS.....',
+    '...uuuSSSSuuu...',
+    '..uuuuuuuuuuuu..',
+    '..uuuuuuuuuuuu..',
+    '..uuYuuuuuYuu...',
+    '..uuuYuuuYuuu...',
+    '...uuuuuuuuu....',
+    '...uu.....uu....',
+    '..uuu.....uuu...',
+    '..XX.......XX...',
+    '..XX.......XX...',
+  ],
+  // Guardian - silver armor, brown hair
+  guardian:[
+    '....hhhhhh......',
+    '...hhhhhhhh.....',
+    '...hShhSSSh.....',
+    '...hSSSSSSh.....',
+    '....SSEESs......',
+    '....AAWWAS......',
+    '...AAAAAAAAA....',
+    '..AAAAAAAAAA....',
+    '..AAAAAAAAAA....',
+    '..AAYAAAYAAA....',
+    '..AAAAAAAAA.....',
+    '...AAAAAAAA.....',
+    '...AA.....AA....',
+    '..AAA.....AAA...',
+    '..AA.......AA...',
+    '..AA.......AA...',
+  ],
+  // Strategist - red outfit, dark hair
+  strategist:[
+    '....HHHHHH......',
+    '...HHHHHHHHH....',
+    '...HSHhHSSSH....',
+    '...HSSSSSSH.....',
+    '....SSEESs......',
+    '....SRVVRS......',
+    '...RRRRRRRR.....',
+    '..RRRRRRRRRRR...',
+    '..RRRRRRRRRRR...',
+    '..RRYRRRRYRRr...',
+    '..RRRYRRRYRRr...',
+    '...RRRRRRRRR....',
+    '...RR.....RR....',
+    '..RRR.....RRR...',
+    '..XX.......XX...',
+    '..XX.......XX...',
+  ],
+
+  // ---- FOREST ENEMIES ----
+  // Seedling (easy) - small green plant monster
+  seedling:[
+    '....NnNnNN......',
+    '...NnnmmmNn.....',
+    '...NmmmmmNN.....',
+    '....NmEENm......',
+    '....NmNNNm......',
+    '.....NNNN.......',
+    '....ooNooo......',
+    '...ooooooo......',
+    '...ooooooo......',
+    '....ooooo.......',
+    '....oo.oo.......',
+    '...ooo.ooo......',
+    '..oo.....oo.....',
+    '...........  ...',
+    '...........  ...',
+    '...........  ...',
+  ],
+  // Vine Crawler (medium)
+  vinecrawler:[
+    '..NNNmNNNN......',
+    '.NNmmmmmmNN.....',
+    '.NmmmEEmmmN.....',
+    '.NmmmmmmmmN.....',
+    '..NNmmmNNN......',
+    '...NNNNNN.......',
+    '.nnnNNNNnnn.....',
+    'nnnnnnnnnnnn....',
+    'nNNnnnnnNNnn....',
+    'nnnnnnnnnnn.....',
+    '.nnn...nnn......',
+    '..nn...nn.......',
+    '.nnn...nnn......',
+    'nn.....nn.......',
+    '...........  ...',
+    '...........  ...',
+  ],
+  // Ancient Ent (boss)
+  ancientent:[
+    '..NNNNNmNNNN....',
+    '.NNmmmmmmmmNN...',
+    'NNmmmmmmmmmmmN..',
+    'NmmmEEEEEEmmmmN.',
+    'NmmmmmmmmmmmmN..',
+    '.NNNmmmmmmNNN...',
+    '..NNNoNNNNN.....',
+    '.ooooooooooo....',
+    'oNooooooooNoo...',
+    'ooooooooooooo...',
+    'ooooooooooooo...',
+    '.ooo.....ooo....',
+    'Nooo.....oooN...',
+    'Nooo.....oooN...',
+    'ooo.......ooo...',
+    'oo.........oo...',
+  ],
+
+  // ---- DESERT ENEMIES ----
+  // Sand Beetle (easy)
+  sandbeetle:[
+    '....DDDDD.......',
+    '...DdcddddD.....',
+    '..DdcccccddD....',
+    '..DdcEEcccD.....',
+    '..DdcccccddD....',
+    '...DdcddddD.....',
+    '....DDDDD.......',
+    '..DDDDDDDDD.....',
+    '.DdddddddddD....',
+    '..DDDDDDDDD.....',
+    '...D.....D......',
+    '..DD.....DD.....',
+    '.D.........D....',
+    '...........  ...',
+    '...........  ...',
+    '...........  ...',
+  ],
+  // Mummy (medium)
+  mummy:[
+    '....WWWWWW......',
+    '...WwwWWWwW.....',
+    '...WwWWWWwW.....',
+    '...WwWEEWwW.....',
+    '...WwWWWWwW.....',
+    '....WWWWWW......',
+    '...wwwwwwww.....',
+    '..wwwwwwwwww....',
+    '..wwwwwwwwww....',
+    '...wwwwwwww.....',
+    '...ww.....ww....',
+    '...ww.....ww....',
+    '..www.....www...',
+    '..ww.......ww...',
+    '..w.........w...',
+    '...........  ...',
+  ],
+  // Sand Warlord (boss)
+  sandwarlord:[
+    '....TTTTTTT.....',
+    '...TcTTTTTcT....',
+    '..TcccTTTcccT...',
+    '..TcTEETTETcT...',
+    '..TcccTTTcccT...',
+    '...TcTTTTTcT....',
+    '....TTTTTTT.....',
+    '...CTTTTTTTTC...',
+    '..CTTTTYTTTTtC..',
+    '..CTTTTTTTTttC..',
+    '..CcTTTTTTTcC...',
+    '...CcTTTTTcC....',
+    '...Cc.....cC....',
+    '..TCC.....CCT...',
+    '..TC.......CT...',
+    '..T.........T...',
+  ],
+
+  // ---- ICE ENEMIES ----
+  // Snow Puff (easy)
+  snowpuff:[
+    '....jjjjj.......',
+    '...jiiiiiij.....',
+    '..jiiiIIiiij....',
+    '..jiIIIIIIij....',
+    '..jiIEEIIIij....',
+    '..jiIIIIIIij....',
+    '...jiiiIiiij....',
+    '....jjjjjj......',
+    '...jjIIjIIjj....',
+    '...jIIIIIIIj....',
+    '....jIIIIIj.....',
+    '.....jIIIj......',
+    '......jIj.......',
+    '.....jjijj......',
+    '....jj...jj.....',
+    '...........  ...',
+  ],
+  // Frost Wraith (medium)
+  frostwraith:[
+    '....jIIIIIj.....',
+    '...jIIIIIIIj....',
+    '..jIIIEEIIIIj...',
+    '..jIIIIIIIIIj...',
+    '..jIIIIIIIIIj...',
+    '...jIIIIIIIj....',
+    '....jjIIIjj.....',
+    '....jIIIIIIj....',
+    '...jIIIIIIIIj...',
+    '...IIIIIIIIIIj..',
+    '..IIIIIIIIIIj...',
+    '..IIIjjjjIIj....',
+    '..Ij.......jI...',
+    '..j.........j...',
+    '...........  ...',
+    '...........  ...',
+  ],
+  // Ice Titan (boss)
+  icetitan:[
+    '...jjIIIIIjj....',
+    '..jIIIIIIIIIj...',
+    '.jIIIIIIIIIIIj..',
+    '.jIIIEEEEIIIIj..',
+    '.jIIIIIIIIIIIj..',
+    '..jIIIIIIIIIj...',
+    '...jjjIIIjjj....',
+    '..IIIJIIIIIII...',
+    '.IIIIIIIIIIIIj..',
+    '.IjIIIIIIIIjII..',
+    '.IIIIIIIIIIIjI..',
+    '..IIIjjjjIIII...',
+    '..III.....IIII..',
+    '..IjI.....IjII..',
+    '..jI.......Ij...',
+    '..I.........I...',
+  ],
+
+  // ---- VOLCANO ENEMIES ----
+  // Ember Sprite (easy)
+  embersprite:[
+    '.....fFFf.......',
+    '....fFFFFf......',
+    '...fFFFFFFf.....',
+    '...fFEEFFFf.....',
+    '...fFFFFFqf.....',
+    '....fFFFqff.....',
+    '.....fffqf......',
+    '....LLqqqLL.....',
+    '...LLLqqqLLL....',
+    '...LLLqqqLLL....',
+    '....LLqqqLL.....',
+    '....Lq...qL.....',
+    '...LLq...qLL....',
+    '..LL.......LL...',
+    '...........  ...',
+    '...........  ...',
+  ],
+  // Magma Golem (medium)
+  magmagolem:[
+    '...QQQQQQQ......',
+    '..QQlllllQQ.....',
+    '.QQlllllllQQ....',
+    '.QQlEElllLQQ....',
+    '.QQlllllllQQ....',
+    '..QQlllllQQ.....',
+    '...QQQQQQQ......',
+    '.QQQlllllQQQ....',
+    'QQQQlllllQQQQ...',
+    'QQlQlllllQlQQ...',
+    'QQQQlllllQQQQ...',
+    '.QQQlllllQQQ....',
+    '..QQ.....QQ.....',
+    '.QQQ.....QQQ....',
+    '..QQ.......QQ...',
+    '..Q.........Q...',
+  ],
+  // Inferno King (boss)
+  infernoking:[
+    '..fFfFFFFfFf....',
+    '.fFFFFFFFFFFf...',
+    'fFFFFFFFFFFFFFf.',
+    'fFFEEEFFFEEEFFf.',
+    'fFFFFFFFFFFFFFf.',
+    '.fFFFFqFFFqFFFf.',
+    '..fFFFqqqqqFFf..',
+    '.QLQQQQqQQQQQLQ.',
+    'QLLLQQQqQQQQLLLQ',
+    'QlllLQQqQQLLlllQ',
+    'QQlllLQQQLlllQQ.',
+    '.QQlllLLLlllQQ..',
+    '..QQll...llQQ...',
+    '..QLl.....lLQ...',
+    '..Ql.......lQ...',
+    '..Q.........Q...',
+  ],
+
+  // Terrain tiles (8x8)
+  grass_tile:[
+    'gGgGgGgG',
+    'GgGgGgGg',
+    'gGgGgGgG',
+    'GgGgGgGg',
+    'gGgGgGgG',
+    'GgGgGgGg',
+    'gGgGgGgG',
+    'GgGgGgGg',
+  ],
+  sand_tile:[
+    'TTdTTdTT',
+    'dTTTdTTT',
+    'TTdTTdTT',
+    'TdTTTdTT',
+    'TTdTTdTT',
+    'dTTTdTTT',
+    'TTdTTdTT',
+    'TdTTTdTT',
+  ],
+  ice_tile:[
+    'jIjIjIjI',
+    'IjIjIjIj',
+    'jIjIjIjI',
+    'IjIjIjIj',
+    'jIjIjIjI',
+    'IjIjIjIj',
+    'jIjIjIjI',
+    'IjIjIjIj',
+  ],
+  lava_tile:[
+    'QlQlQlQl',
+    'lQlQlQlQ',
+    'QlQlQlQl',
+    'lQlQlQlQ',
+    'QlQlQlQl',
+    'lQlQlQlQ',
+    'QlQlQlQl',
+    'lQlQlQlQ',
+  ],
+  town_tile:[
+    'GgGgGgGg',
+    'gGgGGgGg',
+    'GgGgGgGg',
+    'gGGgGgGG',
+    'GgGgGgGg',
+    'ggGgGGgg',
+    'GgGgGgGg',
+    'gGgGGgGg',
+  ],
+  // Decorations
+  tree_deco:[
+    '...NNN..',
+    '..NmmmN.',
+    '.NmmNmmN',
+    '.NmmmmmN',
+    '..NmNmN.',
+    '...ooo..',
+    '...ooo..',
+    '........',
+  ],
+  cactus_deco:[
+    '...ddd..',
+    '...ddd..',
+    '.ddddddd',
+    '.ddddddd',
+    '...ddd..',
+    '...ddd..',
+    '...ddd..',
+    '........',
+  ],
+  iceberg_deco:[
+    '...jjj..',
+    '..jIIIj.',
+    '.jIIIIIj',
+    '.jIIIIIj',
+    '..jIIIj.',
+    '...jjj..',
+    '........',
+    '........',
+  ],
+  rock_deco:[
+    '..aaaa..',
+    '.aAAAAa.',
+    'aAAAAAaa',
+    'aAAAAAaa',
+    '.aAAAAa.',
+    '..aaaa..',
+    '........',
+    '........',
+  ],
+};
+
+// Tile canvas cache
+const tileCache = {};
+function getTileCanvas(spriteName, scale) {
+  const key = spriteName+'_'+scale;
+  if(tileCache[key]) return tileCache[key];
+  const sp = SPRITES[spriteName];
+  if(!sp) return null;
+  const rows=sp.length, cols=sp[0].length;
+  const c=document.createElement('canvas');
+  c.width=cols*scale; c.height=rows*scale;
+  const ctx=c.getContext('2d');
+  px(ctx,sp,0,0,scale);
+  tileCache[key]=c;
+  return c;
+}
+
+// Draw sprite to a canvas element
+function drawToCanvas(canvasEl, spriteName, bgColor, scale=4, flipX=false) {
+  const sp = SPRITES[spriteName];
+  if(!sp) return;
+  const rows=sp.length, cols=sp[0].length;
+  canvasEl.width = cols*scale;
+  canvasEl.height = rows*scale;
+  const ctx = canvasEl.getContext('2d');
+  ctx.fillStyle = bgColor || 'transparent';
+  ctx.fillRect(0,0,canvasEl.width,canvasEl.height);
+  px(ctx, sp, 0, 0, scale, flipX);
+}
+
+// ================================================================
+// QUESTIONS
+// ================================================================
+const Q=[
+  {q:"Capital of France?",o:["Berlin","Paris","Madrid","Rome"],a:1,d:"easy",c:"Geography"},
+  {q:"Which continent is Egypt in?",o:["Asia","Europe","Africa","South America"],a:2,d:"easy",c:"Geography"},
+  {q:"Largest ocean?",o:["Atlantic","Indian","Arctic","Pacific"],a:3,d:"easy",c:"Geography"},
+  {q:"How many continents?",o:["5","6","7","8"],a:2,d:"easy",c:"Geography"},
+  {q:"Capital of Japan?",o:["Beijing","Seoul","Tokyo","Bangkok"],a:2,d:"easy",c:"Geography"},
+  {q:"Most populous country?",o:["USA","India","China","Brazil"],a:2,d:"easy",c:"Geography"},
+  {q:"Capital of Australia?",o:["Sydney","Melbourne","Canberra","Brisbane"],a:2,d:"easy",c:"Geography"},
+  {q:"Amazon River continent?",o:["Africa","Asia","North America","South America"],a:3,d:"easy",c:"Geography"},
+  {q:"Gas plants absorb?",o:["Oxygen","Nitrogen","Carbon Dioxide","Hydrogen"],a:2,d:"easy",c:"Science"},
+  {q:"Bones in human body?",o:["186","206","226","246"],a:1,d:"easy",c:"Science"},
+  {q:"Planet closest to Sun?",o:["Venus","Earth","Mercury","Mars"],a:2,d:"easy",c:"Science"},
+  {q:"Water boils at (°C)?",o:["90","95","100","105"],a:2,d:"easy",c:"Science"},
+  {q:"Chemical symbol for gold?",o:["Go","Gd","Au","Ag"],a:2,d:"easy",c:"Science"},
+  {q:"The Red Planet?",o:["Venus","Mars","Jupiter","Saturn"],a:1,d:"easy",c:"Science"},
+  {q:"Spider legs?",o:["6","8","10","12"],a:1,d:"easy",c:"Science"},
+  {q:"H2O is?",o:["Salt","Water","Hydrogen","Oxygen"],a:1,d:"easy",c:"Science"},
+  {q:"First US President?",o:["Lincoln","John Adams","George Washington","Jefferson"],a:2,d:"easy",c:"History"},
+  {q:"WWII ended?",o:["1943","1944","1945","1946"],a:2,d:"easy",c:"History"},
+  {q:"Painted the Mona Lisa?",o:["Michelangelo","Raphael","Leonardo da Vinci","Donatello"],a:2,d:"easy",c:"History"},
+  {q:"Pyramids are near?",o:["Cairo","Alexandria","Luxor","Aswan"],a:0,d:"easy",c:"History"},
+  {q:"12 × 12?",o:["132","144","148","156"],a:1,d:"easy",c:"Math"},
+  {q:"√64?",o:["6","7","8","9"],a:2,d:"easy",c:"Math"},
+  {q:"Hexagon sides?",o:["5","6","7","8"],a:1,d:"easy",c:"Math"},
+  {q:"15% of 200?",o:["25","30","35","40"],a:1,d:"easy",c:"Math"},
+  {q:"2^10?",o:["512","1024","2048","256"],a:1,d:"easy",c:"Math"},
+  {q:"Colors in a rainbow?",o:["5","6","7","8"],a:2,d:"easy",c:"General"},
+  {q:"Fastest land animal?",o:["Lion","Cheetah","Leopard","Gazelle"],a:1,d:"easy",c:"General"},
+  {q:"Guitar strings?",o:["4","5","6","7"],a:2,d:"easy",c:"General"},
+  {q:"Most of Earth's atmosphere?",o:["Oxygen","Hydrogen","CO2","Nitrogen"],a:3,d:"easy",c:"General"},
+  {q:"Sport at Wimbledon?",o:["Cricket","Tennis","Golf","Rugby"],a:1,d:"easy",c:"General"},
+  {q:"Soccer team size?",o:["9","10","11","12"],a:2,d:"easy",c:"General"},
+  {q:"Japan's currency?",o:["Yuan","Won","Yen","Ringgit"],a:2,d:"easy",c:"General"},
+  {q:"Days in a leap year?",o:["364","365","366","367"],a:2,d:"easy",c:"General"},
+  {q:"Largest mammal?",o:["Elephant","Giraffe","Blue Whale","Hippo"],a:2,d:"easy",c:"General"},
+  {q:"Developed relativity?",o:["Newton","Bohr","Einstein","Hawking"],a:2,d:"easy",c:"Science"},
+  {q:"First Moon landing?",o:["1967","1968","1969","1970"],a:2,d:"easy",c:"History"},
+  {q:"Largest planet?",o:["Saturn","Uranus","Neptune","Jupiter"],a:3,d:"easy",c:"Science"},
+  {q:"Longest river?",o:["Amazon","Congo","Yangtze","Nile"],a:3,d:"medium",c:"Geography"},
+  {q:"Country with most natural lakes?",o:["Russia","USA","Brazil","Canada"],a:3,d:"medium",c:"Geography"},
+  {q:"Capital of Brazil?",o:["Rio de Janeiro","São Paulo","Brasília","Salvador"],a:2,d:"medium",c:"Geography"},
+  {q:"Mount Kilimanjaro is in?",o:["Kenya","Ethiopia","Tanzania","Uganda"],a:2,d:"medium",c:"Geography"},
+  {q:"Saltiest sea?",o:["Red Sea","Dead Sea","Caspian Sea","Mediterranean"],a:1,d:"medium",c:"Geography"},
+  {q:"Speed of light?",o:["200k km/s","300k km/s","400k km/s","500k km/s"],a:1,d:"medium",c:"Science"},
+  {q:"Organ that makes insulin?",o:["Liver","Kidney","Pancreas","Stomach"],a:2,d:"medium",c:"Science"},
+  {q:"Atomic number of carbon?",o:["4","6","8","12"],a:1,d:"medium",c:"Science"},
+  {q:"Planet with most moons?",o:["Jupiter","Saturn","Uranus","Neptune"],a:1,d:"medium",c:"Science"},
+  {q:"DNA stands for?",o:["Deoxyribose Nucleic Acid","Deoxyribonucleic Acid","Double Nucleic Acid","Dipeptide Nucleic Acid"],a:1,d:"medium",c:"Science"},
+  {q:"Powerhouse of the cell?",o:["Nucleus","Ribosome","Mitochondria","Golgi Apparatus"],a:2,d:"medium",c:"Science"},
+  {q:"Vitamin from sunlight?",o:["Vitamin A","Vitamin B","Vitamin C","Vitamin D"],a:3,d:"medium",c:"Science"},
+  {q:"Berlin Wall fell?",o:["1987","1988","1989","1990"],a:2,d:"medium",c:"History"},
+  {q:"First person in space?",o:["Neil Armstrong","Yuri Gagarin","Buzz Aldrin","Alan Shepard"],a:1,d:"medium",c:"History"},
+  {q:"Renaissance began in?",o:["France","England","Italy","Germany"],a:2,d:"medium",c:"History"},
+  {q:"Hundred Years' War length?",o:["100 years","116 years","99 years","87 years"],a:1,d:"medium",c:"History"},
+  {q:"Ancient wonder in Alexandria?",o:["Colossus of Rhodes","Lighthouse","Hanging Gardens","Statue of Zeus"],a:1,d:"medium",c:"History"},
+  {q:"CPU stands for?",o:["Central Process Unit","Central Processing Unit","Computer Process Unit","Core Processing Unit"],a:1,d:"medium",c:"Technology"},
+  {q:"HTML stands for?",o:["HyperText Markup Language","HighText Machine Language","HyperText Machine Language","HyperTool Markup Language"],a:0,d:"medium",c:"Technology"},
+  {q:"Invented the WWW?",o:["Bill Gates","Steve Jobs","Tim Berners-Lee","Linus Torvalds"],a:2,d:"medium",c:"Technology"},
+  {q:"First iPhone year?",o:["2005","2006","2007","2008"],a:2,d:"medium",c:"Technology"},
+  {q:"RAM stands for?",o:["Random Access Memory","Read Access Memory","Rapid Access Memory","Remote Access Memory"],a:0,d:"medium",c:"Technology"},
+  {q:"Wrote '1984'?",o:["Aldous Huxley","George Orwell","Ray Bradbury","H.G. Wells"],a:1,d:"medium",c:"Literature"},
+  {q:"Wrote 'Don Quixote'?",o:["Lope de Vega","Miguel de Cervantes","García Márquez","Federico Lorca"],a:1,d:"medium",c:"Literature"},
+  {q:"Killed Hamlet's father?",o:["Laertes","Polonius","Claudius","Horatio"],a:2,d:"medium",c:"Literature"},
+  {q:"'To Kill a Mockingbird' author?",o:["Truman Capote","Tennessee Williams","Harper Lee","John Steinbeck"],a:2,d:"medium",c:"Literature"},
+  {q:"Most spoken language?",o:["English","Spanish","Mandarin Chinese","Hindi"],a:2,d:"medium",c:"General"},
+  {q:"Olympics originated in?",o:["Italy","Greece","Egypt","Persia"],a:1,d:"medium",c:"General"},
+  {q:"Chemical symbol for iron?",o:["Ir","In","Fe","Fo"],a:2,d:"medium",c:"Science"},
+  {q:"Country that invented paper?",o:["Egypt","India","China","Japan"],a:2,d:"medium",c:"History"},
+  {q:"Bytes in a kilobyte?",o:["100","512","1024","2048"],a:2,d:"medium",c:"Technology"},
+  {q:"Element symbol 'K'?",o:["Krypton","Potassium","Calcium","Chromium"],a:1,d:"medium",c:"Science"},
+  {q:"Capital of Kazakhstan?",o:["Almaty","Astana","Shymkent","Karaganda"],a:1,d:"hard",c:"Geography"},
+  {q:"Most official languages?",o:["India","Switzerland","South Africa","Belgium"],a:2,d:"hard",c:"Geography"},
+  {q:"Mariana Trench ocean?",o:["Atlantic","Indian","Arctic","Pacific"],a:3,d:"hard",c:"Geography"},
+  {q:"Smallest country by area?",o:["Monaco","San Marino","Liechtenstein","Vatican City"],a:3,d:"hard",c:"Geography"},
+  {q:"River through Baghdad?",o:["Euphrates","Tigris","Nile","Indus"],a:1,d:"hard",c:"Geography"},
+  {q:"Half-life of Carbon-14?",o:["2,730 years","5,730 years","11,460 years","1,365 years"],a:1,d:"hard",c:"Science"},
+  {q:"Chandrasekhar limit?",o:["0.8 solar masses","1.4 solar masses","2.0 solar masses","3.0 solar masses"],a:1,d:"hard",c:"Science"},
+  {q:"Highest melting point element?",o:["Iron","Platinum","Tungsten","Osmium"],a:2,d:"hard",c:"Science"},
+  {q:"Human chromosomes?",o:["44","46","48","50"],a:1,d:"hard",c:"Science"},
+  {q:"Force binding quarks?",o:["Electromagnetic","Weak nuclear","Strong nuclear","Gravitational"],a:2,d:"hard",c:"Science"},
+  {q:"Higgs boson confirmed?",o:["2010","2012","2014","2016"],a:1,d:"hard",c:"Science"},
+  {q:"Western Rome fell in?",o:["410 AD","455 AD","476 AD","500 AD"],a:2,d:"hard",c:"History"},
+  {q:"Last Tsar of Russia?",o:["Alexander III","Nicholas I","Nicholas II","Alexander II"],a:2,d:"hard",c:"History"},
+  {q:"Treaty of Westphalia ended?",o:["Thirty Years War","Hundred Years War","Seven Years War","Napoleonic Wars"],a:0,d:"hard",c:"History"},
+  {q:"Builder of the Great Pyramid?",o:["Ramesses II","Tutankhamun","Khufu","Cleopatra"],a:2,d:"hard",c:"History"},
+  {q:"Byzantine Emperor at fall of Constantinople?",o:["Constantine XI","John VIII","Manuel II","Alexios IV"],a:0,d:"hard",c:"History"},
+  {q:"Euler's number to 2 d.p.?",o:["2.71","2.72","2.73","2.74"],a:0,d:"hard",c:"Math"},
+  {q:"10th prime number?",o:["23","27","29","31"],a:2,d:"hard",c:"Math"},
+  {q:"17 × 23?",o:["381","391","401","411"],a:1,d:"hard",c:"Math"},
+  {q:"Interior angles of pentagon?",o:["360°","540°","720°","900°"],a:1,d:"hard",c:"Math"},
+  {q:"log₂(1024)?",o:["8","9","10","11"],a:2,d:"hard",c:"Math"},
+  {q:"SQL stands for?",o:["Structured Query Language","Simple Query Language","Sequential Query Language","Standard Query Language"],a:0,d:"hard",c:"Technology"},
+  {q:"O(n log n) is?",o:["Bubble sort","Merge sort","Linear search","Binary search"],a:1,d:"hard",c:"Technology"},
+  {q:"Email send protocol?",o:["HTTP","FTP","SMTP","POP3"],a:2,d:"hard",c:"Technology"},
+  {q:"Smallest unit of data?",o:["Byte","Nibble","Bit","Word"],a:2,d:"hard",c:"Technology"},
+  {q:"Wrote 'The Divine Comedy'?",o:["Petrarch","Dante Alighieri","Boccaccio","Virgil"],a:1,d:"hard",c:"Literature"},
+  {q:"'Ulysses' published in?",o:["1918","1920","1922","1924"],a:2,d:"hard",c:"Literature"},
+  {q:"Wrote 'Crime and Punishment'?",o:["Tolstoy","Turgenev","Chekhov","Dostoevsky"],a:3,d:"hard",c:"Literature"},
+  {q:"Estate in 'Pride and Prejudice'?",o:["Pemberley","Thornfield","Wuthering Heights","Netherfield"],a:0,d:"hard",c:"Literature"},
+  {q:"Study of fungi?",o:["Botany","Mycology","Zoology","Ecology"],a:1,d:"hard",c:"Science"},
+  {q:"Most abundant atmospheric gas?",o:["Oxygen","Argon","CO2","Nitrogen"],a:3,d:"hard",c:"Science"},
+];
+
+// ================================================================
+// GAME DATA
+// ================================================================
+const CHARS=[
+  {id:0,name:"Scholar",  sprite:"scholar",   hp:100,atk:20,def:15,crit:.20,dodge:.15,color:"#4fc3f7",desc:"Balanced. Knows a little of everything."},
+  {id:1,name:"Guardian", sprite:"guardian",  hp:140,atk:15,def:30,crit:.10,dodge:.10,color:"#81c784",desc:"High defense. Hard to kill, slow to strike."},
+  {id:2,name:"Strategist",sprite:"strategist",hp:80,atk:25,def:10,crit:.45,dodge:.30,color:"#f06292",desc:"High crit & dodge. Risky but rewarding."},
+];
+
+const BIOMES=[
+  {
+    id:0,name:"Forest",emoji:"🌲",
+    bg:"#0d2e0d",tile:"grass_tile",townTile:"town_tile",deco:"tree_deco",decoFreq:0.06,
+    wallColor:"#1a5a1a",wallAccent:"#2a7a2a",
+    eColor:"#66bb6a",
+    enemies:[
+      {name:"Seedling",   sprite:"seedling",    baseHp:35,baseAtk:8, sc:0.35,type:"easy"},
+      {name:"Vine Crawler",sprite:"vinecrawler",baseHp:55,baseAtk:14,sc:0.45,type:"medium"},
+    ],
+    boss:{name:"Ancient Ent",sprite:"ancientent",bossHpMult:3,bossAtkMult:1.6,sc:0.55},
+    dw:{easy:.70,medium:.25,hard:.05},
+    desc:"A mystical forest teeming with ancient spirits. Seedlings and Vine Crawlers lurk behind every tree.",
+  },
+  {
+    id:1,name:"Desert",emoji:"🏜️",
+    bg:"#3a1800",tile:"sand_tile",townTile:"town_tile",deco:"cactus_deco",decoFreq:0.05,
+    wallColor:"#8b6914",wallAccent:"#c8a44a",
+    eColor:"#ffa726",
+    enemies:[
+      {name:"Sand Beetle",sprite:"sandbeetle",baseHp:50,baseAtk:14,sc:0.45,type:"easy"},
+      {name:"Mummy",       sprite:"mummy",     baseHp:75,baseAtk:20,sc:0.55,type:"medium"},
+    ],
+    boss:{name:"Sand Warlord",sprite:"sandwarlord",bossHpMult:3,bossAtkMult:1.7,sc:0.65},
+    dw:{easy:.30,medium:.55,hard:.15},
+    desc:"Scorching sands hide Sand Beetles and ancient Mummies. The Sand Warlord rules them all.",
+  },
+  {
+    id:2,name:"Ice",emoji:"❄️",
+    bg:"#010f1f",tile:"ice_tile",townTile:"town_tile",deco:"iceberg_deco",decoFreq:0.05,
+    wallColor:"#0a3050",wallAccent:"#4099aa",
+    eColor:"#80deea",
+    enemies:[
+      {name:"Snow Puff",    sprite:"snowpuff",   baseHp:65,baseAtk:18,sc:0.55,type:"easy"},
+      {name:"Frost Wraith", sprite:"frostwraith",baseHp:90,baseAtk:26,sc:0.65,type:"medium"},
+    ],
+    boss:{name:"Ice Titan",sprite:"icetitan",bossHpMult:3,bossAtkMult:1.8,sc:0.72},
+    dw:{easy:.10,medium:.50,hard:.40},
+    desc:"A frozen wasteland haunted by Snow Puffs and Frost Wraiths. The Ice Titan awaits at its heart.",
+  },
+  {
+    id:3,name:"Volcano",emoji:"🌋",
+    bg:"#1a0000",tile:"lava_tile",townTile:"town_tile",deco:"rock_deco",decoFreq:0.05,
+    wallColor:"#3a0a0a",wallAccent:"#cc3300",
+    eColor:"#ef5350",
+    enemies:[
+      {name:"Ember Sprite",sprite:"embersprite",baseHp:80,baseAtk:24,sc:0.62,type:"easy"},
+      {name:"Magma Golem", sprite:"magmagolem", baseHp:110,baseAtk:34,sc:0.72,type:"medium"},
+    ],
+    boss:{name:"Inferno King",sprite:"infernoking",bossHpMult:3,bossAtkMult:2.0,sc:0.80},
+    dw:{easy:.05,medium:.25,hard:.70},
+    desc:"The ultimate volcanic trial. Ember Sprites and Magma Golems guard the Inferno King's throne.",
+  },
+];
+
+// ================================================================
+// TERRAIN MAP
+// ================================================================
+const WW=1280,WH=720,TILE=32;
+const COLS=Math.ceil(WW/TILE)+2, ROWS=Math.ceil(WH/TILE)+2;
+let terrainMap=[]; // 0=base tile, 1=town tile, 2=deco/obstacle
+let decoPositions=[];
+
+function buildTerrain(biomeIdx){
+  const b=BIOMES[biomeIdx];
+  terrainMap=[];
+  decoPositions=[];
+  for(let r=0;r<ROWS;r++){
+    terrainMap[r]=[];
+    for(let c=0;c<COLS;c++){
+      const wx=(c)*TILE, wy=(r)*TILE;
+      const distTown=Math.hypot(wx+TILE/2-400,wy+TILE/2-300);
+      if(distTown<130) terrainMap[r][c]=1; // town tile
+      else terrainMap[r][c]=0;
+    }
+  }
+  // Scatter decorations
+  for(let r=1;r<ROWS-1;r++){
+    for(let c=1;c<COLS-1;c++){
+      const wx=c*TILE,wy=r*TILE;
+      const distTown=Math.hypot(wx-400,wy-300);
+      if(distTown>160 && Math.random()<b.decoFreq){
+        decoPositions.push({x:wx,y:wy,r,c});
+        terrainMap[r][c]=2;
+      }
+    }
+  }
+}
+
+function isSolid(wx,wy){
+  const c=Math.floor(wx/TILE), r=Math.floor(wy/TILE);
+  if(r<0||r>=ROWS||c<0||c>=COLS) return false;
+  return terrainMap[r][c]===2;
+}
+
+// ================================================================
+// STATE
+// ================================================================
+const G={
+  screen:"menu",player:null,biomeIdx:0,
+  defeated:new Set(),usedQ:new Set(),
+  enemies:[],px:400,py:300,inTown:false,
+  keys:new Set(),jdx:0,jdy:0,loopId:null,
+  animFrame:0, animTick:0,
+  eid:null,eBoss:false,eHp:0,eMaxHp:0,
+  cEnemyType:null,
+  cAction:null,cQ:null,cTimer:15,cTimerInt:null,
+  cAnswered:false,cCorrect:false,
+  combatFlash:0, playerFlash:0,
+  // Aggro system
+  aggroEnemy:null,   // reference to the enemy that spotted the player
+  aggroPhase:null,   // null | 'warning' | 'charging'
+  aggroTimer:0,      // frames remaining in current phase
+  frozen:false,      // player movement locked
+};
+const SPD=2.8;
+const AGGRO_DETECT = 120;   // px – enemy notices player
+const AGGRO_WARN   = 60;    // frames of "!" warning before charge
+const CHARGE_SPD   = 5.5;   // pixels/frame while charging
+
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
+function dst(ax,ay,bx,by){return Math.hypot(ax-bx,ay-by);}
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  G.screen=id;
+}
+
+// ================================================================
+// MENU
+// ================================================================
+(function(){
+  const el=document.getElementById('menu-stars');
+  for(let i=0;i<24;i++){
+    const s=document.createElement('div');s.className='star';
+    s.style.left=(i*37)%100+'%';s.style.top=(i*53)%85+'%';
+    el.appendChild(s);
+  }
+  let t=0;
+  setInterval(()=>{t++;el.querySelectorAll('.star').forEach((s,i)=>s.style.opacity=(t+i)%3===0?'1':'0.15');},500);
+  // Draw some sprites on menu canvas
+  const mc=document.getElementById('menu-sprite-canvas');
+  mc.width=200;mc.height=80;
+  const mctx=mc.getContext('2d');
+  mctx.fillStyle='transparent';
+  px(mctx,SPRITES.scholar,4,8,4);
+  px(mctx,SPRITES.guardian,72,8,4);
+  px(mctx,SPRITES.strategist,140,8,4);
+})();
+
+document.getElementById('btn-start').onclick=()=>{show('charsel');buildChars();};
+document.getElementById('btn-back').onclick=()=>show('menu');
+
+// ================================================================
+// CHAR SELECT
+// ================================================================
+function buildChars(){
+  const g=document.getElementById('char-grid');g.innerHTML='';
+  CHARS.forEach(c=>{
+    const d=document.createElement('div');d.className='ccard';
+    // Sprite canvas
+    const sc=document.createElement('canvas');
+    sc.width=64;sc.height=64;sc.style.imageRendering='pixelated';
+    sc.style.display='block';sc.style.margin='0 auto 8px';
+    const sctx=sc.getContext('2d');
+    px(sctx,SPRITES[c.sprite],0,0,4);
+    d.appendChild(sc);
+    const info=document.createElement('div');
+    info.innerHTML=`<div class="cname" style="color:${c.color}">${c.name}</div>
+      <div class="cdesc">${c.desc}</div>
+      <div class="cstats">❤️ HP: <span style="color:#ef5350">${c.hp}</span><br>
+        ⚔️ ATK: <span style="color:#ff9800">${c.atk}</span><br>
+        🛡️ DEF: <span style="color:#4fc3f7">${c.def}</span><br>
+        💥 CRIT: <span style="color:#ffd700">${Math.round(c.crit*100)}%</span><br>
+        💨 DODGE: <span style="color:#ce93d8">${Math.round(c.dodge*100)}%</span></div>`;
+    d.appendChild(info);
+    d.onmouseenter=()=>{d.style.borderColor=c.color;d.style.transform='translateY(-4px)';d.style.boxShadow=`0 8px 24px ${c.color}44`;d.style.background=`${c.color}11`;};
+    d.onmouseleave=()=>{d.style.borderColor='#333';d.style.transform='';d.style.boxShadow='';d.style.background='#0a0a1a';};
+    d.onclick=()=>startGame(c.id);
+    g.appendChild(d);
+  });
+}
+
+// ================================================================
+// START / WORLD
+// ================================================================
+function startGame(id){
+  const c=CHARS[id];
+  G.player={...c,maxHp:c.hp};
+  G.defeated=new Set();G.usedQ=new Set();
+  G.biomeIdx=0;
+  initWorld();show('explore');layoutUI();showIntro();
+}
+
+function initWorld(){
+  const b=BIOMES[G.biomeIdx];
+  G.px=400;G.py=300;G.enemies=[];
+  G.aggroPhase=null;G.aggroEnemy=null;G.aggroTimer=0;G.frozen=false;
+  buildTerrain(G.biomeIdx);
+
+  // Spawn multiple enemy types
+  let id=0;
+  b.enemies.forEach((etype,ti)=>{
+    const count=3+ti; // easy: 3, medium: 4
+    for(let i=0;i<count;i++){
+      let x,y,tries=0;
+      do{x=80+Math.random()*(WW-160);y=60+Math.random()*(WH-120);tries++;}
+      while((dst(x,y,400,300)<170||isSolid(x,y))&&tries<80);
+      const hp=etype.baseHp+G.biomeIdx*8;
+      G.enemies.push({id:id++,x,y,dx:(Math.random()-.5)*(etype.type==='medium'?1.4:1.0),dy:(Math.random()-.5)*(etype.type==='medium'?1.4:1.0),hp,maxHp:hp,dead:false,boss:false,etype});
+    }
+  });
+  // Boss
+  if(!G.defeated.has(G.biomeIdx)){
+    const be=b.boss;
+    const baseHp=(b.enemies[0].baseHp+G.biomeIdx*8)*be.bossHpMult;
+    G.enemies.push({id:id++,x:WW-160,y:90,dx:0,dy:0,hp:Math.round(baseHp),maxHp:Math.round(baseHp),dead:false,boss:true,etype:{...b.enemies[0],name:be.name,sprite:be.sprite,baseAtk:b.enemies[0].baseAtk*be.bossAtkMult,sc:be.sc}});
+  }
+}
+
+// ================================================================
+// CANVAS DRAW
+// ================================================================
+const cv=document.getElementById('world-canvas');
+const cx=cv.getContext('2d');
+const mc=document.getElementById('mm-canvas');
+const mx=mc.getContext('2d');
+
+// Pre-render tile strips
+const tileStrips={};
+function getTileStrip(spriteName,scale){
+  const key=spriteName+'_'+scale;
+  if(tileStrips[key]) return tileStrips[key];
+  const sp=SPRITES[spriteName];
+  if(!sp) return null;
+  const rows=sp.length,cols=sp[0].length;
+  // Make a strip of 4 tiles wide for variation
+  const c2=document.createElement('canvas');
+  c2.width=cols*scale*4;c2.height=rows*scale;
+  const c2x=c2.getContext('2d');
+  for(let t=0;t<4;t++) px(c2x,sp,t*cols*scale,0,scale);
+  tileStrips[key]=c2;
+  return c2;
+}
+
+let playerWalkFrame=0, playerWalkTick=0;
+
+function drawWorld(){
+  const ex=document.getElementById('explore');
+  const newW=ex.clientWidth||window.innerWidth;
+  const newH=ex.clientHeight||window.innerHeight;
+  if(cv.width!==newW||cv.height!==newH){cv.width=newW;cv.height=newH;}
+  const W=cv.width,H=cv.height;
+  const b=BIOMES[G.biomeIdx];
+  const camX=clamp(G.px-W/2,0,WW-W);
+  const camY=clamp(G.py-H/2,0,WH-H);
+
+  // Background
+  cx.fillStyle=b.bg;cx.fillRect(0,0,W,H);
+
+  // Draw terrain tiles
+  const sp_base=SPRITES[b.tile];
+  const sp_town=SPRITES[b.townTile||'town_tile'];
+  const sp_deco=SPRITES[b.deco];
+  const c0=Math.floor(camX/TILE)-1,c1=Math.ceil((camX+W)/TILE)+1;
+  const r0=Math.floor(camY/TILE)-1,r1=Math.ceil((camY+H)/TILE)+1;
+
+  for(let r=Math.max(0,r0);r<Math.min(ROWS,r1);r++){
+    for(let c=Math.max(0,c0);c<Math.min(COLS,c1);c++){
+      const wx=c*TILE,wy=r*TILE;
+      const sx=wx-camX,sy=wy-camY;
+      const tval=terrainMap[r]?terrainMap[r][c]||0:0;
+      const sp=tval===1?sp_town:sp_base;
+      if(sp) px(cx,sp,sx,sy,TILE/sp[0].length);
+      if(tval===2 && sp_deco){
+        // draw deco over base
+        px(cx,sp_base,sx,sy,TILE/sp_base[0].length);
+        px(cx,sp_deco,sx,sy,TILE/sp_deco[0].length);
+      }
+    }
+  }
+
+  // Town circle glow
+  cx.save();
+  cx.strokeStyle='rgba(144,238,144,0.45)';cx.lineWidth=3;
+  cx.setLineDash([6,4]);cx.beginPath();
+  cx.arc(400-camX,300-camY,105,0,Math.PI*2);cx.stroke();cx.restore();
+  cx.font="8px 'Press Start 2P'";cx.fillStyle='#90ee90';cx.textAlign='center';cx.textBaseline='alphabetic';
+  cx.fillText('TOWN',400-camX,300-camY-112);
+
+  // Enemies
+  G.animTick=(G.animTick+1)%20;
+  if(G.animTick===0) G.animFrame=(G.animFrame+1)%4;
+
+  G.enemies.forEach(e=>{
+    if(e.dead)return;
+    const sp=SPRITES[e.etype.sprite];
+    if(!sp) return;
+    const sc=e.boss?3:2;
+    const sw=sp[0].length*sc,sh=sp.length*sc;
+    const ex2=e.x-camX-sw/2, ey2=e.y-camY-sh/2;
+    // Boss glow
+    if(e.boss){
+      cx.save();
+      cx.shadowColor=BIOMES[G.biomeIdx].eColor;
+      cx.shadowBlur=12;
+      px(cx,sp,ex2,ey2,sc);
+      cx.restore();
+      // BOSS label
+      cx.font="7px 'Press Start 2P'";cx.fillStyle='#ff4444';cx.textAlign='center';
+      cx.fillText('BOSS',e.x-camX,e.y-camY-sh/2-5);
+    } else {
+      // Slight bob animation
+      const bob=Math.sin(G.animFrame*1.5+e.id)*1.5;
+      px(cx,sp,ex2,ey2+bob,sc);
+    }
+    // HP bar above enemy
+    const bw=sw;
+    const bhp=Math.max(0,e.hp/e.maxHp);
+    cx.fillStyle='#111';cx.fillRect(e.x-camX-bw/2,e.y-camY-sh/2-10,bw,5);
+    cx.fillStyle=bhp>0.5?'#4caf50':bhp>0.25?'#ff9800':'#f44336';
+    cx.fillRect(e.x-camX-bw/2,e.y-camY-sh/2-10,bw*bhp,5);
+  });
+
+  // Player
+  const ps=SPRITES[G.player.sprite];
+  if(ps){
+    const psc=3;
+    const pw=ps[0].length*psc,ph=ps.length*psc;
+    // Walk animation: offset y slightly
+    playerWalkTick=(playerWalkTick+1)%12;
+    if(playerWalkTick===0) playerWalkFrame=(playerWalkFrame+1)%4;
+    const bob=(G.keys.size>0||Math.abs(G.jdx)>0.1||Math.abs(G.jdy)>0.1)?Math.sin(playerWalkFrame*Math.PI)*2:0;
+    const flashTint=G.playerFlash>0?'rgba(255,100,100,0.5)':null;
+    if(G.playerFlash>0) G.playerFlash--;
+    cx.save();
+    if(G.playerFlash>0){cx.globalAlpha=0.7+Math.sin(G.playerFlash)*0.3;}
+    px(cx,ps,G.px-camX-pw/2,G.py-camY-ph/2+bob,psc);
+    cx.restore();
+    // Player name tag
+    cx.font="7px 'Press Start 2P'";cx.fillStyle='#ffd700';cx.textAlign='center';
+    cx.fillText(G.player.name,G.px-camX,G.py-camY-ph/2-5);
+  }
+
+  // Flash overlay for combat
+  if(G.combatFlash>0){
+    cx.fillStyle=`rgba(255,255,255,${G.combatFlash/10})`;
+    cx.fillRect(0,0,W,H);
+    G.combatFlash--;
+  }
+
+  // ── Aggro visuals ────────────────────────────────────────────
+  const now = Date.now();
+  const warnBlink = Math.floor(now/100)%2===0;
+  const fastBlink = Math.floor(now/60)%2===0;
+
+  G.enemies.forEach(e=>{
+    if(e.dead)return;
+    const sp=SPRITES[e.etype.sprite];
+    if(!sp)return;
+    const sc=e.boss?3:2;
+    const sw2=sp[0].length*sc, sh=sp.length*sc;
+    const ex2=e.x-camX, ey2=e.y-camY;
+
+    // Soft aggro detection ring (faint, only when idle)
+    if(!e.boss && G.aggroPhase===null){
+      cx.save();
+      cx.strokeStyle='rgba(255,200,0,0.10)';
+      cx.lineWidth=1; cx.setLineDash([4,4]);
+      cx.beginPath(); cx.arc(ex2,ey2,AGGRO_DETECT,0,Math.PI*2); cx.stroke();
+      cx.restore();
+    }
+
+    // ── WARNING phase: big "!" speech bubble above enemy ──
+    if(G.aggroPhase==='warning' && G.aggroEnemy===e){
+      // Pulsing yellow ring around enemy
+      cx.save();
+      cx.strokeStyle=warnBlink?'rgba(255,220,0,0.9)':'rgba(255,100,0,0.7)';
+      cx.lineWidth=3; cx.setLineDash([]);
+      cx.beginPath(); cx.arc(ex2,ey2,sw2/2+10,0,Math.PI*2); cx.stroke();
+      cx.restore();
+
+      // "!" speech bubble
+      const bw=30, bh=34;
+      const bx=ex2-bw/2, by=ey2-sh/2-bh-14;
+      // Bubble background
+      cx.save();
+      cx.fillStyle=warnBlink?'#ffdd00':'#ff8800';
+      cx.strokeStyle='#000'; cx.lineWidth=2;
+      cx.beginPath();
+      cx.roundRect?cx.roundRect(bx,by,bw,bh,4):cx.rect(bx,by,bw,bh);
+      cx.fill(); cx.stroke();
+      // Triangle pointer
+      cx.fillStyle=warnBlink?'#ffdd00':'#ff8800';
+      cx.beginPath();
+      cx.moveTo(ex2-6,by+bh); cx.lineTo(ex2+6,by+bh); cx.lineTo(ex2,by+bh+8);
+      cx.fill();
+      cx.strokeStyle='#000'; cx.lineWidth=2;
+      cx.beginPath();
+      cx.moveTo(ex2-6,by+bh); cx.lineTo(ex2,by+bh+8); cx.lineTo(ex2+6,by+bh);
+      cx.stroke();
+      // "!" text
+      cx.fillStyle='#000';
+      cx.font="bold 20px 'Press Start 2P',monospace";
+      cx.textAlign='center'; cx.textBaseline='middle';
+      cx.fillText('!',ex2,by+bh/2);
+      cx.restore();
+    }
+
+    // ── CHARGING phase: motion trail + red outline ──
+    if(G.aggroPhase==='charging' && G.aggroEnemy===e){
+      const ddx=G.px-e.x, ddy=G.py-e.y;
+      const dlen=Math.hypot(ddx,ddy)||1;
+      // Motion trail (3 fading copies behind)
+      for(let t=1;t<=3;t++){
+        cx.save();
+        cx.globalAlpha=0.15*t;
+        px(cx,sp,ex2-sw2/2-(ddx/dlen*10*t),ey2-sh/2-(ddy/dlen*10*t),sc);
+        cx.restore();
+      }
+      // Angry red outline
+      cx.save();
+      cx.strokeStyle=fastBlink?'#ff2200':'#ff9900';
+      cx.lineWidth=3; cx.setLineDash([]);
+      cx.strokeRect(ex2-sw2/2-3,ey2-sh/2-3,sw2+6,sh+6);
+      cx.restore();
+      // Rage "!!" above enemy
+      cx.save();
+      cx.fillStyle=fastBlink?'#ff2200':'#ff6600';
+      cx.font="bold 14px 'Press Start 2P',monospace";
+      cx.textAlign='center'; cx.textBaseline='alphabetic';
+      cx.fillText('!!',ex2,ey2-sh/2-6);
+      cx.restore();
+    }
+  });
+
+  // ── FROZEN player: vignette + status text ──
+  if(G.frozen){
+    // Dark edge vignette
+    const vg=cx.createRadialGradient(W/2,H/2,H*0.25,W/2,H/2,H*0.85);
+    vg.addColorStop(0,'rgba(0,0,0,0)');
+    vg.addColorStop(1,G.aggroPhase==='charging'?'rgba(180,20,0,0.45)':'rgba(0,0,0,0.45)');
+    cx.fillStyle=vg; cx.fillRect(0,0,W,H);
+
+    // Red border flash during charging
+    if(G.aggroPhase==='charging' && fastBlink){
+      cx.save();
+      cx.strokeStyle='rgba(255,40,0,0.7)'; cx.lineWidth=8;
+      cx.strokeRect(4,4,W-8,H-8);
+      cx.restore();
+    }
+
+    // Status banner at bottom
+    cx.save();
+    cx.fillStyle='rgba(0,0,0,0.65)';
+    cx.fillRect(0,H-44,W,44);
+    if(G.aggroPhase==='warning'){
+      cx.font="10px 'Press Start 2P',monospace";
+      cx.fillStyle=warnBlink?'#ffdd00':'#ff8800';
+      cx.textAlign='center'; cx.textBaseline='middle';
+      cx.fillText('! ENEMY SPOTTED — BRACE YOURSELF !', W/2, H-22);
+    } else if(G.aggroPhase==='charging'){
+      cx.font="10px 'Press Start 2P',monospace";
+      cx.fillStyle=fastBlink?'#ff2200':'#ff9900';
+      cx.textAlign='center'; cx.textBaseline='middle';
+      cx.fillText('⚡ INCOMING CHARGE — CANNOT MOVE ⚡', W/2, H-22);
+    }
+    cx.restore();
+  }
+
+  // Minimap
+  mx.fillStyle='rgba(0,0,0,.85)';mx.fillRect(0,0,120,70);
+  const mmx2=v=>v/WW*120,mmy2=v=>v/WH*70;
+  mx.fillStyle='#2d6a1e';mx.fillRect(mmx2(400)-4,mmy2(300)-4,8,8);
+  G.enemies.forEach(e=>{
+    if(e.dead)return;
+    mx.fillStyle=e.boss?'#ff4444':BIOMES[G.biomeIdx].eColor;
+    const sz=e.boss?5:3;
+    mx.fillRect(mmx2(e.x)-sz/2,mmy2(e.y)-sz/2,sz,sz);
+  });
+  mx.fillStyle='#ffd700';mx.fillRect(mmx2(G.px)-3,mmy2(G.py)-3,6,6);
+}
+
+function updateHUD(){
+  if(!G.player)return;
+  const b=BIOMES[G.biomeIdx];
+  document.getElementById('hud-name').textContent=`${G.player.name}`;
+  const p=Math.max(0,G.player.hp/G.player.maxHp*100);
+  const hb=document.getElementById('hud-hp');
+  hb.style.width=p+'%';hb.style.background=p>50?'#4caf50':p>25?'#ff9800':'#f44336';
+  document.getElementById('hud-biome').textContent=`${b.emoji} ${b.name}`;
+  document.getElementById('hud-bosses').textContent=`👑 ${G.defeated.size}/4`;
+  document.getElementById('hud-heal').style.display=G.inTown?'block':'none';
+}
+
+// ================================================================
+// GAME LOOP
+// ================================================================
+function startLoop(){stopLoop();function loop(){if(G.screen!=='explore'){G.loopId=null;return;}tick();drawWorld();updateHUD();G.loopId=requestAnimationFrame(loop);}G.loopId=requestAnimationFrame(loop);}
+function stopLoop(){if(G.loopId){cancelAnimationFrame(G.loopId);G.loopId=null;}}
+
+function tick(){
+  // ── Aggro state machine ──────────────────────────────────────
+  if(G.aggroPhase==='warning'){
+    G.aggroTimer--;
+    // Player is frozen during warning
+    G.frozen=true;
+    if(G.aggroTimer<=0){
+      // Switch to charging
+      G.aggroPhase='charging';
+      G.aggroTimer=120; // max frames to reach player before giving up
+    }
+    // Move all non-aggro enemies normally (but not the aggro one)
+    tickIdleEnemies();
+    return; // skip player movement & normal enemy loop below
+  }
+
+  if(G.aggroPhase==='charging'){
+    G.frozen=true;
+    const e=G.aggroEnemy;
+    if(!e||e.dead){resetAggro();return;}
+    G.aggroTimer--;
+    // Charge straight at player
+    const ddx=G.px-e.x, ddy=G.py-e.y;
+    const dlen=Math.hypot(ddx,ddy)||1;
+    const cspd = e.boss ? CHARGE_SPD*1.3 : CHARGE_SPD;
+    e.x+=ddx/dlen*cspd;
+    e.y+=ddy/dlen*cspd;
+    // Hit!
+    if(dst(e.x,e.y,G.px,G.py)<28){
+      resetAggro();
+      beginCombat(e);
+      return;
+    }
+    // Gave up
+    if(G.aggroTimer<=0) resetAggro();
+    tickIdleEnemies();
+    return;
+  }
+
+  // ── Normal movement (no aggro active) ───────────────────────
+  G.frozen=false;
+
+  let dx=0,dy=0;
+  if(!G.frozen){
+    if(G.keys.has('w')||G.keys.has('arrowup'))dy-=1;
+    if(G.keys.has('s')||G.keys.has('arrowdown'))dy+=1;
+    if(G.keys.has('a')||G.keys.has('arrowleft'))dx-=1;
+    if(G.keys.has('d')||G.keys.has('arrowright'))dx+=1;
+    dx+=G.jdx;dy+=G.jdy;
+    const len=Math.hypot(dx,dy);
+    if(len>0){dx=dx/len*SPD;dy=dy/len*SPD;}
+    const nx=clamp(G.px+dx,20,WW-20);
+    const ny=clamp(G.py+dy,20,WH-20);
+    if(!isSolid(nx,G.py)) G.px=nx;
+    if(!isSolid(G.px,ny)) G.py=ny;
+  }
+
+  for(const e of G.enemies){
+    if(e.dead)continue;
+    // Check aggro trigger (but not if player is in town)
+    const d=dst(e.x,e.y,G.px,G.py);
+    const aggroRange = e.boss ? AGGRO_DETECT*1.4 : AGGRO_DETECT;
+    if(d<aggroRange && !G.inTown && G.aggroPhase===null){
+      G.aggroEnemy=e;
+      G.aggroPhase='warning';
+      G.aggroTimer=AGGRO_WARN;
+      G.frozen=true;
+      return; // stop everything, start warning
+    }
+    // Normal wander
+    const enx=e.x+e.dx, eny=e.y+e.dy;
+    if(!isSolid(enx,e.y)&&enx>60&&enx<WW-60) e.x=enx; else e.dx*=-1;
+    if(!isSolid(e.x,eny)&&eny>60&&eny<WH-60) e.y=eny; else e.dy*=-1;
+    if(dst(e.x,e.y,400,300)<130){e.dx*=-1;e.dy*=-1;}
+    if(d<28){beginCombat(e);return;}
+  }
+
+  G.inTown=dst(G.px,G.py,400,300)<90;
+  if(G.inTown&&G.player.hp<G.player.maxHp)
+    G.player.hp=Math.min(G.player.maxHp,G.player.hp+0.2);
+}
+
+function tickIdleEnemies(){
+  // Move all enemies that are NOT the aggro one normally
+  for(const e of G.enemies){
+    if(e.dead||e===G.aggroEnemy)continue;
+    const enx=e.x+e.dx,eny=e.y+e.dy;
+    if(!isSolid(enx,e.y)&&enx>60&&enx<WW-60) e.x=enx; else e.dx*=-1;
+    if(!isSolid(e.x,eny)&&eny>60&&eny<WH-60) e.y=eny; else e.dy*=-1;
+    if(dst(e.x,e.y,400,300)<130){e.dx*=-1;e.dy*=-1;}
+  }
+}
+
+function resetAggro(){
+  G.aggroPhase=null;
+  G.aggroEnemy=null;
+  G.aggroTimer=0;
+  G.frozen=false;
+}
+
+// ================================================================
+// INTRO
+// ================================================================
+function showIntro(){
+  const b=BIOMES[G.biomeIdx];
+  // Draw boss sprite in intro
+  const isc=document.getElementById('intro-sprite');
+  drawToCanvas(isc,b.boss.sprite,'transparent',5);
+  document.getElementById('intro-name').textContent=b.name+' Biome';
+  document.getElementById('intro-name').style.color=b.eColor;
+  document.getElementById('intro-desc').textContent=b.desc;
+  const etypes=b.enemies.map(e=>e.name).join(', ');
+  document.getElementById('intro-tip').innerHTML=`Enemies: <strong style="color:${b.eColor}">${etypes}</strong><br>Boss: <strong style="color:#ff4444">${b.boss.name}</strong><br><br>Town (green ring) heals you`;
+  document.getElementById('intro-go').style.color=b.eColor;
+  document.getElementById('intro-go').style.borderColor=b.eColor;
+  document.getElementById('intro-overlay').style.display='flex';
+}
+document.getElementById('intro-go').onclick=()=>{document.getElementById('intro-overlay').style.display='none';startLoop();};
+
+// ================================================================
+// KEYBOARD
+// ================================================================
+window.addEventListener('keydown',e=>{
+  G.keys.add(e.key.toLowerCase());
+  if(e.key==='Escape'){if(G.screen==='explore')doPause();else if(G.screen==='paused')doResume();}
+});
+window.addEventListener('keyup',e=>G.keys.delete(e.key.toLowerCase()));
+
+// ================================================================
+// PAUSE
+// ================================================================
+document.getElementById('hud-pause-btn').onclick=doPause;
+document.getElementById('pause-explore-btn').onclick=doPause;
+document.getElementById('btn-resume').onclick=doResume;
+document.getElementById('btn-to-menu').onclick=()=>{stopLoop();show('menu');};
+function doPause(){stopLoop();const b=BIOMES[G.biomeIdx];document.getElementById('p-biome').textContent=`${b.emoji} ${b.name} Biome`;document.getElementById('p-stats').textContent=`HP: ${Math.round(G.player.hp)}/${G.player.maxHp}  |  Bosses: ${G.defeated.size}/4`;show('paused');}
+function doResume(){show('explore');layoutUI();startLoop();}
+
+// ================================================================
+// COMBAT
+// ================================================================
+function beginCombat(enemy){
+  stopLoop();
+  const b=BIOMES[G.biomeIdx];
+  G.eid=enemy.id;G.eBoss=enemy.boss;
+  G.eHp=enemy.hp;G.eMaxHp=enemy.maxHp;
+  G.cEnemyType=enemy.etype;
+  G.cAnswered=false;G.cAction=null;
+
+  document.getElementById('combat').style.background=`linear-gradient(180deg,${b.bg},#050505)`;
+  document.getElementById('c-title').textContent=enemy.boss?`👑 BOSS: ${b.boss.name}`:`⚔️ ${enemy.etype.name}`;
+  document.getElementById('c-title').style.color=enemy.boss?'#ff4444':b.eColor;
+  document.getElementById('c-biome').textContent=`${b.emoji} ${b.name}`;
+  document.getElementById('boss-tag').style.display=enemy.boss?'block':'none';
+  document.getElementById('c-enemy-box').style.borderColor=enemy.boss?'#ff4444':'#555';
+  document.getElementById('c-enemy-box').style.boxShadow=enemy.boss?'0 0 20px rgba(255,68,68,.4)':'none';
+
+  // Draw sprites in combat
+  const esc=document.getElementById('c-enemy-canvas');
+  drawToCanvas(esc,enemy.etype.sprite,b.bg,enemy.boss?5:4,true);
+  const psc=document.getElementById('c-player-canvas');
+  drawToCanvas(psc,G.player.sprite,'#0a0a0a',4);
+
+  // Draw game over canvas with player sprite
+  drawToCanvas(document.getElementById('go-canvas'),G.player.sprite,'transparent',5);
+
+  const log=document.getElementById('c-log');log.innerHTML='';
+  addLog(`⚔️ Wild ${enemy.etype.name} appeared!`,'#ddd');
+
+  refreshBars();setActions(true);
+  document.getElementById('q-panel').style.display='none';
+  show('combat');
+}
+
+function refreshBars(){
+  const b=BIOMES[G.biomeIdx];
+  const ep=Math.max(0,G.eHp/G.eMaxHp*100);
+  const eb=document.getElementById('c-enemy-hp');
+  eb.style.width=ep+'%';eb.style.background=ep>50?'#4caf50':ep>25?'#ff9800':'#f44336';
+  document.getElementById('c-enemy-name').textContent=G.eBoss?b.boss.name:G.cEnemyType.name;
+  document.getElementById('c-enemy-hptext').textContent=`${Math.round(G.eHp)}/${G.eMaxHp} HP`;
+  const pp=Math.max(0,G.player.hp/G.player.maxHp*100);
+  const pb=document.getElementById('c-player-hp');
+  pb.style.width=pp+'%';pb.style.background=pp>50?'#4caf50':pp>25?'#ff9800':'#f44336';
+  document.getElementById('c-player-name').textContent=G.player.name;
+  document.getElementById('c-player-hptext').textContent=`${Math.round(G.player.hp)}/${G.player.maxHp} HP`;
+}
+
+function addLog(txt,col){
+  const log=document.getElementById('c-log');
+  const d=document.createElement('div');d.className='logline';d.style.color=col||'#ccc';d.textContent=txt;
+  log.appendChild(d);log.scrollTop=log.scrollHeight;
+}
+
+function setActions(v){document.getElementById('c-actions').style.display=v?'flex':'none';}
+
+function shakeCanvas(id){
+  const el=document.getElementById(id);
+  el.style.animation='none';void el.offsetWidth;
+  el.style.animation='shake .35s ease-in-out';
+  setTimeout(()=>el.style.animation='',400);
+}
+
+// Action buttons
+document.getElementById('act-attack').onclick=()=>doAction('attack');
+document.getElementById('act-heavy').onclick=()=>doAction('heavy');
+document.getElementById('act-block').onclick=()=>doAction('block');
+document.getElementById('act-dodge').onclick=()=>doAction('dodge');
+document.getElementById('flee-btn').onclick=()=>{
+  G.player.hp=Math.max(1,G.player.hp-Math.floor(G.player.hp*.15));
+  stopTimer();
+  const e=G.enemies.find(e=>e.id===G.eid);
+  if(e){e.x=clamp(e.x+150,60,WW-60);e.y=clamp(e.y+100,60,WH-60);}
+  resetAggro();
+  show('explore');startLoop();
+};
+
+function doAction(act){
+  G.cAction=act;G.cAnswered=false;
+  const b=BIOMES[G.biomeIdx];
+  let w={...b.dw};
+  if(act==='heavy'||act==='dodge')w={easy:.05,medium:.25,hard:.70};
+  else if(act==='block')w={easy:.20,medium:.60,hard:.20};
+  const roll=Math.random();let cum=0,diff='easy';
+  for(const[d2,v]of Object.entries(w)){cum+=v;if(roll<cum){diff=d2;break;}}
+  let pool=Q.map((q,i)=>({q,i})).filter(x=>x.q.d===diff&&!G.usedQ.has(x.i));
+  if(!pool.length)pool=Q.map((q,i)=>({q,i})).filter(x=>!G.usedQ.has(x.i));
+  if(!pool.length){G.usedQ=new Set();pool=Q.map((q,i)=>({q,i}));}
+  const pick=pool[Math.floor(Math.random()*pool.length)];
+  G.usedQ.add(pick.i);G.cQ=pick.q;
+  const q=G.cQ,L='ABCD';
+  document.getElementById('q-meta').textContent=`${q.c.toUpperCase()} • ${q.d.toUpperCase()}`;
+  document.getElementById('q-text').textContent=q.q;
+  ['qo0','qo1','qo2','qo3'].forEach((id,i)=>{
+    const btn=document.getElementById(id);
+    btn.textContent=`${L[i]}. ${q.o[i]}`;
+    btn.className='qopt';btn.disabled=false;
+  });
+  document.getElementById('q-result').style.display='none';
+  document.getElementById('q-panel').style.display='block';
+  setActions(false);startTimer();
+}
+
+function startTimer(){stopTimer();G.cTimer=15;updateTimer();G.cTimerInt=setInterval(()=>{G.cTimer--;updateTimer();if(G.cTimer<=0){stopTimer();resolve2(-1);}},1000);}
+function stopTimer(){if(G.cTimerInt){clearInterval(G.cTimerInt);G.cTimerInt=null;}}
+function updateTimer(){
+  const p=G.cTimer/15*100;
+  const col=G.cTimer>8?'#4caf50':G.cTimer>4?'#ff9800':'#f44336';
+  document.getElementById('timer-fill').style.width=p+'%';
+  document.getElementById('timer-fill').style.background=col;
+  document.getElementById('timer-num').textContent=G.cTimer;
+  document.getElementById('timer-num').style.color=col;
+}
+
+['qo0','qo1','qo2','qo3'].forEach((id,i)=>{document.getElementById(id).onclick=()=>resolve2(i);});
+
+function resolve2(idx){
+  if(G.cAnswered)return;
+  G.cAnswered=true;stopTimer();
+  const q=G.cQ,correct=idx===q.a;
+  G.cCorrect=correct;
+  ['qo0','qo1','qo2','qo3'].forEach((id,i)=>{
+    const btn=document.getElementById(id);btn.disabled=true;
+    if(i===q.a)btn.classList.add('correct');
+    else if(i===idx&&!correct)btn.classList.add('wrong');
+  });
+  const res=document.getElementById('q-result');
+  res.style.display='block';res.style.color=correct?'#4caf50':'#f44336';
+  res.textContent=correct?'✅ CORRECT!':'❌ WRONG!';
+
+  const etype=G.cEnemyType;
+  if(correct){
+    if(G.cAction==='attack'){
+      const dmg=Math.floor(G.player.atk*(0.85+Math.random()*.3));
+      G.eHp=Math.max(0,G.eHp-dmg);
+      addLog(`✅ Correct! ${dmg} damage!`,'#90ee90');shakeCanvas('c-enemy-canvas');
+    }else if(G.cAction==='heavy'){
+      const dmg=Math.floor(G.player.atk*2*(0.85+Math.random()*.3));
+      G.eHp=Math.max(0,G.eHp-dmg);
+      addLog(`💥 Critical! ${dmg} damage!`,'#ffd700');shakeCanvas('c-enemy-canvas');
+    }else if(G.cAction==='block'){
+      addLog('🛡️ Blocking incoming hit!','#4fc3f7');
+    }else{
+      addLog('💨 Ready to dodge!','#ce93d8');
+    }
+  }else{
+    const pen=Math.floor(etype.baseAtk*(G.cAction==='heavy'?1.2:.6));
+    G.player.hp=Math.max(0,G.player.hp-pen);
+    addLog(`❌ Wrong! ${pen} damage taken!`,'#f44336');shakeCanvas('c-player-canvas');
+  }
+
+  refreshBars();
+  if(G.player.hp<=0){addLog('💀 You have fallen...','#f44336');setTimeout(()=>show('gameover'),1800);return;}
+  if(G.eHp<=0){addLog(`🏆 ${G.eBoss?BIOMES[G.biomeIdx].boss.name:etype.name} defeated!`,'#ffd700');setTimeout(()=>endCombat(true),1500);return;}
+  setTimeout(enemyTurn,1100);
+}
+
+function enemyTurn(){
+  const etype=G.cEnemyType;
+  const acts=['attack','attack','attack','heavy','block','dodge'];
+  const act=acts[Math.floor(Math.random()*acts.length)];
+  const hit=Math.random()<etype.sc;
+  const blocked=G.cAction==='block'&&G.cCorrect;
+  const dodged=G.cAction==='dodge'&&G.cCorrect;
+  if(act==='attack'){
+    if(dodged)addLog('💨 You dodged the attack!','#ce93d8');
+    else if(hit){
+      const dmg=Math.floor(etype.baseAtk*(blocked?.4:1)*(0.8+Math.random()*.4));
+      G.player.hp=Math.max(0,G.player.hp-dmg);
+      addLog(`👊 ${etype.name} attacks for ${dmg}${blocked?' (blocked!)':''}!`,blocked?'#4fc3f7':'#f44336');
+      shakeCanvas('c-player-canvas');
+    }else addLog(`${etype.name} misses!`,'#555');
+  }else if(act==='heavy'&&hit){
+    if(dodged)addLog('💨 Dodged heavy attack!','#ce93d8');
+    else{
+      const dmg=Math.floor(etype.baseAtk*1.8*(0.8+Math.random()*.4));
+      G.player.hp=Math.max(0,G.player.hp-dmg);
+      addLog(`💢 Heavy hit! ${dmg} damage!`,'#f44336');shakeCanvas('c-player-canvas');
+    }
+  }else if(act==='block')addLog(`🛡️ ${etype.name} guards!`,'#777');
+  else addLog(`${etype.name} fumbles!`,'#555');
+  refreshBars();
+  if(G.player.hp<=0){addLog('💀 You have fallen...','#f44336');setTimeout(()=>show('gameover'),1800);return;}
+  setTimeout(()=>{document.getElementById('q-panel').style.display='none';setActions(true);G.cAnswered=false;},700);
+}
+
+function endCombat(won){
+  const e=G.enemies.find(e=>e.id===G.eid);
+  if(e)e.dead=true;
+  if(won&&G.eBoss){
+    G.defeated.add(G.biomeIdx);
+    if(G.defeated.size>=4){show('victory');initVictory();return;}
+    G.biomeIdx++;initWorld();show('explore');showIntro();
+  }else{show('explore');startLoop();}
+}
+
+// ================================================================
+// GAME OVER / VICTORY
+// ================================================================
+document.getElementById('btn-go-menu').onclick=()=>show('menu');
+document.getElementById('btn-v-menu').onclick=()=>show('menu');
+function initVictory(){
+  const vs=document.getElementById('v-stars');vs.innerHTML='';
+  ['🌟','⭐','✨','💫'].forEach((em,i)=>{
+    for(let j=0;j<3;j++){
+      const d=document.createElement('div');d.className='vstar';
+      d.style.left=((i*3+j)*17)%100+'%';d.style.top=((i*3+j)*23)%80+'%';
+      d.style.animationDuration=(.5+j*.3)+'s';d.style.animationDelay=(i*.15)+'s';
+      d.textContent=em;vs.appendChild(d);
+    }
+  });
+}
+// ================================================================
+// RESPONSIVE LAYOUT — runs on load + every resize
+// ================================================================
+function isTouchDevice(){
+  return ('ontouchstart' in window) || navigator.maxTouchPoints>0;
+}
+
+function layoutUI(){
+  const W=window.innerWidth, H=window.innerHeight;
+  const isPortrait = H > W;
+  const isMobile = W < 768 || isTouchDevice();
+
+  // ── Joystick ──────────────────────────────────────────────────
+  const joy=document.getElementById('joy');
+  const knob=document.getElementById('joy-knob');
+
+  if(isMobile){
+    // Size: 16% of shorter dimension, min 80px, max 130px
+    const jSize = Math.round(Math.min(Math.max(Math.min(W,H)*0.18, 80), 130));
+    const knobSize = Math.round(jSize*0.36);
+    const margin = Math.round(jSize*0.18);
+    // Safe area bottom (handles iPhone notch etc)
+    const safeBottom = Math.max(margin, parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sab')||'0') + margin);
+
+    joy.style.display='flex';
+    joy.style.width  = jSize+'px';
+    joy.style.height = jSize+'px';
+    joy.style.left   = margin+'px';
+    joy.style.bottom = safeBottom+'px';
+    joy.style.top    = '';
+    knob.style.width  = knobSize+'px';
+    knob.style.height = knobSize+'px';
+
+    // Pause btn — opposite corner from joystick
+    const pb=document.getElementById('pause-explore-btn');
+    pb.style.bottom = safeBottom+'px';
+    pb.style.right  = margin+'px';
+    pb.style.top    = '';
+    pb.style.left   = '';
+
+    // Minimap — above joystick on mobile
+    const mm=document.getElementById('minimap');
+    const mmH=Math.round(H*0.1);
+    const mmW=Math.round(mmH*1.8);
+    mm.style.width  = mmW+'px';
+    mm.style.height = mmH+'px';
+    mm.style.right  = margin+'px';
+    mm.style.bottom = (safeBottom + jSize + margin)+'px';
+    mm.style.top    = '';
+    // Resize minimap canvas
+    const mmc=document.getElementById('mm-canvas');
+    mmc.width=mmW; mmc.height=mmH;
+
+  } else {
+    // Desktop — hide joystick, fix positions
+    joy.style.display='none';
+
+    const pb=document.getElementById('pause-explore-btn');
+    pb.style.bottom='14px'; pb.style.right='14px';
+    pb.style.top=''; pb.style.left='';
+
+    const mm=document.getElementById('minimap');
+    mm.style.width='120px'; mm.style.height='70px';
+    mm.style.right='14px';
+    mm.style.bottom='60px';
+    mm.style.top='';
+    const mmc=document.getElementById('mm-canvas');
+    mmc.width=120; mmc.height=70;
+  }
+
+  // ── HUD font scaling ──────────────────────────────────────────
+  const hudFontScale = Math.max(0.65, Math.min(1.0, W/600));
+  document.getElementById('hud').style.fontSize = (8*hudFontScale)+'px';
+
+  // ── Combat screen scaling on small phones ─────────────────────
+  if(W < 480){
+    // Tighter padding on very small phones
+    document.getElementById('combat').style.padding='6px';
+    document.getElementById('c-log').style.height='80px';
+    document.querySelectorAll('.abtn').forEach(b=>b.style.fontSize='6px');
+    document.getElementById('q-text').style.fontSize='10px';
+    document.querySelectorAll('.qopt').forEach(b=>b.style.fontSize='9px');
+  } else {
+    document.getElementById('combat').style.padding='10px';
+    document.getElementById('c-log').style.height='120px';
+    document.querySelectorAll('.abtn').forEach(b=>b.style.fontSize='7px');
+    document.getElementById('q-text').style.fontSize='12px';
+    document.querySelectorAll('.qopt').forEach(b=>b.style.fontSize='11px');
+  }
+}
+
+// Apply CSS env() safe area variable for iOS notch
+const safeStyle=document.createElement('style');
+safeStyle.textContent=':root{--sab:env(safe-area-inset-bottom,0px);}';
+document.head.appendChild(safeStyle);
+
+// Run layout on load and on every resize/orientation change
+layoutUI();
+window.addEventListener('resize',()=>{layoutUI();if(G.screen==='explore')drawWorld();});
+window.addEventListener('orientationchange',()=>{setTimeout(()=>{layoutUI();if(G.screen==='explore')drawWorld();},150);});
+
+// ================================================================
+// JOYSTICK (touch events — updated to use dynamic knob size)
+// ================================================================
+const joy=document.getElementById('joy');
+const knob=document.getElementById('joy-knob');
+let jBase={x:0,y:0};
+
+joy.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  const r=joy.getBoundingClientRect();
+  jBase={x:r.left+r.width/2, y:r.top+r.height/2};
+},{passive:false});
+
+joy.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  const t=e.touches[0];
+  const ddx=t.clientX-jBase.x, ddy=t.clientY-jBase.y;
+  const len=Math.hypot(ddx,ddy)||1;
+  if(len<5){G.jdx=0;G.jdy=0;return;}
+  G.jdx=ddx/len; G.jdy=ddy/len;
+  const r=joy.getBoundingClientRect();
+  const maxMove=(r.width/2)*0.55;
+  const mv=Math.min(len,maxMove);
+  knob.style.transform=`translate(${ddx/len*mv}px,${ddy/len*mv}px)`;
+},{passive:false});
+
+joy.addEventListener('touchend',()=>{
+  G.jdx=0; G.jdy=0;
+  knob.style.transform='';
+});
+</script>
+</body>
+</html>
