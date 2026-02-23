@@ -12,6 +12,8 @@ body{display:flex;align-items:center;justify-content:center;}
 #game{width:100vw;height:100vh;position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;font-family:monospace;}
 .screen{display:none;width:100%;height:100%;position:absolute;top:0;left:0;}
 .screen.active{display:flex;flex-direction:column;align-items:center;justify-content:center;}
+#charsel.active{display:block;}
+#charsel-inner{display:flex;flex-direction:column;align-items:center;min-height:100%;}
 .pf{font-family:'Press Start 2P',monospace;}
 .pbtn{font-family:'Press Start 2P',monospace;border:3px solid;cursor:pointer;padding:12px 28px;font-size:11px;background:transparent;letter-spacing:1px;transition:transform .1s,box-shadow .1s;}
 .pbtn:hover{transform:translateY(-2px);}
@@ -24,13 +26,20 @@ body{display:flex;align-items:center;justify-content:center;}
 #menu-title{font-family:'Press Start 2P',monospace;font-size:clamp(20px,4vw,36px);color:#ffd700;text-shadow:3px 3px 0 #b8860b,0 0 24px #ffd700;margin-bottom:6px;}
 #menu-sub{font-family:'Press Start 2P',monospace;font-size:clamp(9px,1.5vw,13px);color:#c9a0dc;text-shadow:2px 2px 0 #6a0dad;margin-bottom:40px;}
 .star{position:absolute;width:3px;height:3px;background:#fff;border-radius:50%;pointer-events:none;}
-#charsel{background:linear-gradient(180deg,#0a1628,#0d2137);gap:0;}
-.char-grid{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:20px 0 24px;}
+#charsel{background:linear-gradient(180deg,#0a1628,#0d2137);gap:0;overflow-y:auto;padding:20px 12px max(24px,env(safe-area-inset-bottom,24px));}
+.char-grid{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin:16px 0 20px;}
 .ccard{border:3px solid #333;padding:16px 14px;cursor:pointer;text-align:center;width:190px;background:#0a0a1a;transition:all .15s;}
 .ccard:hover{transform:translateY(-4px);}
 .cname{font-family:'Press Start 2P',monospace;font-size:11px;margin-bottom:6px;}
 .cdesc{font-size:10px;color:#999;margin-bottom:10px;line-height:1.5;}
 .cstats{font-size:10px;color:#aaa;line-height:1.8;text-align:left;}
+@media(max-width:500px){
+  .ccard{width:calc(50% - 10px);padding:10px 8px;}
+  .cname{font-size:8px;}
+  .cdesc{font-size:8px;}
+  .cstats{font-size:8px;line-height:1.6;}
+  #btn-back{margin-bottom:8px;}
+}
 #explore{padding:0;position:relative;}
 #world-canvas{position:absolute;top:0;left:0;display:block;image-rendering:pixelated;}
 #hud{position:absolute;top:0;left:0;right:0;padding:6px 12px;background:rgba(0,0,0,.8);display:flex;align-items:center;gap:14px;z-index:10;}
@@ -109,10 +118,12 @@ body{display:flex;align-items:center;justify-content:center;}
   </div>
 
   <div id="charsel" class="screen">
-    <div class="pf" style="font-size:15px;color:#4fc3f7;text-shadow:2px 2px 0 #01579b">Choose Your Hero</div>
-    <div style="font-size:11px;color:#445;margin-top:6px">Select your champion wisely</div>
-    <div class="char-grid" id="char-grid"></div>
-    <button class="pbtn pbtn-sm" id="btn-back" style="color:#777;border-color:#555">← Back</button>
+    <div id="charsel-inner">
+      <div class="pf" style="font-size:15px;color:#4fc3f7;text-shadow:2px 2px 0 #01579b;margin-top:8px;">Choose Your Hero</div>
+      <div style="font-size:11px;color:#445;margin-top:6px">Select your champion wisely</div>
+      <div class="char-grid" id="char-grid"></div>
+      <button class="pbtn pbtn-sm" id="btn-back" style="color:#777;border-color:#555;margin-bottom:8px;">← Back</button>
+    </div>
   </div>
 
   <div id="explore" class="screen">
@@ -248,6 +259,30 @@ body{display:flex;align-items:center;justify-content:center;}
       <div id="inv-stats" style="font-size:8px;color:#777;margin-bottom:12px;font-family:monospace;line-height:1.8;"></div>
       <div id="inv-items" style="display:grid;gap:8px;margin-bottom:14px;"></div>
       <button class="pbtn pbtn-sm" id="inv-close" style="color:#aaa;border-color:#555;width:100%">← Close</button>
+    </div>
+  </div>
+
+  <!-- CHEAT PANEL -->
+  <div id="cheat-panel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;align-items:center;justify-content:center;overflow-y:auto;padding:16px;">
+    <div style="background:#0a0a1a;border:3px solid #ff4444;padding:24px 28px;max-width:420px;width:100%;text-align:center;box-shadow:0 0 40px rgba(255,68,68,.35);margin:auto;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:14px;color:#ff4444;margin-bottom:4px;text-shadow:2px 2px 0 #7f0000">☠ CHEAT MODE ☠</div>
+      <div id="cheat-hint" style="font-family:'Press Start 2P',monospace;font-size:7px;color:#555;margin-bottom:22px;">↑↑↓↓←→←→B activated</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#aaa;margin-bottom:10px;">⚡ WARP TO BIOME</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;">
+        <button class="pbtn pbtn-sm" onclick="cheatWarp(0)" style="color:#66bb6a;border-color:#66bb6a;">🌲 Forest</button>
+        <button class="pbtn pbtn-sm" onclick="cheatWarp(1)" style="color:#ffa726;border-color:#ffa726;">🏜️ Desert</button>
+        <button class="pbtn pbtn-sm" onclick="cheatWarp(2)" style="color:#80deea;border-color:#80deea;">❄️ Ice</button>
+        <button class="pbtn pbtn-sm" onclick="cheatWarp(3)" style="color:#ff5722;border-color:#ff5722;">🌋 Volcano</button>
+      </div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#aaa;margin-bottom:10px;">🔧 QUICK TOOLS</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;">
+        <button class="pbtn pbtn-sm" onclick="cheatMaxHP()"      style="color:#4caf50;border-color:#4caf50;">💚 Full HP</button>
+        <button class="pbtn pbtn-sm" onclick="cheatKillAll()"    style="color:#f44336;border-color:#f44336;">💀 Kill All</button>
+        <button class="pbtn pbtn-sm" onclick="cheatUnlockBoss()" style="color:#ffd700;border-color:#ffd700;">🔓 Unlock Boss</button>
+        <button class="pbtn pbtn-sm" onclick="cheatLevelUp()"    style="color:#ce93d8;border-color:#ce93d8;">⬆ Level Up</button>
+      </div>
+      <div id="cheat-status" style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ffd700;min-height:16px;margin-bottom:14px;"></div>
+      <button class="pbtn pbtn-sm" onclick="closeCheat()" style="color:#777;border-color:#555;width:100%;">✖ Close  [Esc]</button>
     </div>
   </div>
 </div>
@@ -747,6 +782,51 @@ const SPRITES = {
     '...ddd..',
     '........',
   ],
+  // ── Desert terrain extras ─────────────────────────────────────
+  // Sandstone pillar cluster — solid obstacle (two boulders side by side)
+  sandstone_pillar:[
+    '.cDDcDd.',
+    'cDddDddD',
+    'DddDDddD',
+    'DdCDdCdD',
+    'DddDDddD',
+    'DddDdddD',
+    '.DDDDDD.',
+    '........',
+  ],
+  // Sand dune — non-solid, decorative terrain bump with shadow
+  sand_dune:[
+    '........',
+    '......d.',
+    '....dddd',
+    '...dDDdd',
+    '..dDDDdd',
+    '.dDDDDdd',
+    'ddDDDddd',
+    'dddddddd',
+  ],
+  // Skull pile — non-solid, macabre desert atmosphere
+  skull_pile:[
+    '........',
+    '.wWww...',
+    'wWEEWw..',
+    'wWwwWw..',
+    '.wwwww..',
+    '..ww.w..',
+    '.ww..ww.',
+    '........',
+  ],
+  // Ancient ruins arch — non-solid, two broken stone columns
+  ruins_arch:[
+    '.aa..aa.',
+    'aAA..AAa',
+    'aAA..AAa',
+    'aAA..AAa',
+    '.aa..aa.',
+    '........',
+    '........',
+    '........',
+  ],
   iceberg_deco:[
     '...jjj..',
     '..jIIIj.',
@@ -1168,7 +1248,12 @@ const BIOMES=[
   },
   {
     id:1,name:"Desert",emoji:"🏜️",
-    bg:"#3a1800",tile:"sand_tile",townTile:"town_tile",deco:"cactus_deco",decoFreq:0.05,
+    bg:"#3a1800",tile:"sand_tile",townTile:"town_tile",
+    deco:"sandstone_pillar",decoFreq:0.028,   // solid – rock pillars
+    deco2:"cactus_deco",    deco2Freq:0.018,   // solid – cacti
+    deco3:"sand_dune",      deco3Freq:0.045,   // non-solid – dune bumps
+    deco4:"skull_pile",     deco4Freq:0.012,   // non-solid – bones
+    deco5:"ruins_arch",     deco5Freq:0.010,   // non-solid – ruins
     wallColor:"#8b6914",wallAccent:"#c8a44a",
     eColor:"#ffa726",
     enemies:[
@@ -1315,6 +1400,7 @@ function gainXP(amount){
 
 function showLevelUp(){
   G.pendingLevelUp=false;
+  AudioEngine.sfxLevelUp();
   const p=G.player;
   luPending={pts:p.statPoints||0,kn:0,ph:0,qs:0};
   document.getElementById('lu-level').textContent=`Reached Level ${p.level}!`;
@@ -1405,6 +1491,7 @@ function useItem(idx){
   const itemId=items[idx];
   const item=ITEMS.find(i=>i.id===itemId);
   if(!item||!item.consumable) return;
+  AudioEngine.sfxItemUse();
   item.effect(p);
   items.splice(idx,1);
   showItemDrop(`Used ${item.icon} ${item.name}: ${item.effectDesc}`,2000);
@@ -1437,19 +1524,24 @@ function buildTerrain(biomeIdx){
     terrainMap[r]=[];
     for(let c=0;c<COLS;c++){
       const wx=(c)*TILE, wy=(r)*TILE;
-      const distTown=Math.hypot(wx+TILE/2-400,wy+TILE/2-300);
-      if(distTown<130) terrainMap[r][c]=1; // town tile
+      const distTown=Math.hypot(wx+TILE/2-TOWN_X,wy+TILE/2-TOWN_Y);
+      if(distTown<TOWN_SAFE) terrainMap[r][c]=1; // town tile
       else terrainMap[r][c]=0;
     }
   }
-  // Scatter decorations
+  // Scatter decorations — keep a clear buffer around the town safe zone
   for(let r=1;r<ROWS-1;r++){
     for(let c=1;c<COLS-1;c++){
       const wx=c*TILE,wy=r*TILE;
-      const distTown=Math.hypot(wx-400,wy-300);
-      if(distTown>160 && Math.random()<b.decoFreq){
-        decoPositions.push({x:wx,y:wy,r,c});
-        terrainMap[r][c]=2;
+      const distTown=Math.hypot(wx-TOWN_X,wy-TOWN_Y);
+      if(distTown>(TOWN_SAFE+32) && terrainMap[r][c]===0){
+        const roll=Math.random();
+        let cum=0;
+        if(b.decoFreq  && roll<(cum+=b.decoFreq)){  terrainMap[r][c]=2; decoPositions.push({x:wx,y:wy,r,c}); }
+        else if(b.deco2Freq && roll<(cum+=b.deco2Freq)){ terrainMap[r][c]=3; decoPositions.push({x:wx,y:wy,r,c}); }
+        else if(b.deco3Freq && roll<(cum+=b.deco3Freq)){ terrainMap[r][c]=4; }
+        else if(b.deco4Freq && roll<(cum+=b.deco4Freq)){ terrainMap[r][c]=5; }
+        else if(b.deco5Freq && roll<(cum+=b.deco5Freq)){ terrainMap[r][c]=6; }
       }
     }
   }
@@ -1458,7 +1550,8 @@ function buildTerrain(biomeIdx){
 function isSolid(wx,wy){
   const c=Math.floor(wx/TILE), r=Math.floor(wy/TILE);
   if(r<0||r>=ROWS||c<0||c>=COLS) return false;
-  return terrainMap[r][c]===2;
+  const tv=terrainMap[r][c];
+  return tv===2||tv===3; // 2=primary solid deco, 3=secondary solid deco
 }
 
 // ================================================================
@@ -1497,10 +1590,36 @@ const CHARGE_SPD   = 5.5;   // pixels/frame while charging
 function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
 function dst(ax,ay,bx,by){return Math.hypot(ax-bx,ay-by);}
 
+// ── Line-of-sight raycaster: returns false if a solid tile blocks the path ──
+// Steps along the line in TILE/2 increments and checks isSolid at each point.
+function hasLOS(x1,y1,x2,y2){
+  const dx=x2-x1, dy=y2-y1;
+  const len=Math.hypot(dx,dy);
+  if(len<1) return true;
+  const step=TILE*0.5;           // sample every half-tile
+  const nx=dx/len, ny=dy/len;
+  const steps=Math.ceil(len/step);
+  for(let i=1;i<steps;i++){
+    const px2=x1+nx*step*i, py2=y1+ny*step*i;
+    if(isSolid(px2,py2)) return false;
+  }
+  return true;
+}
+
+const TOWN_X=400, TOWN_Y=300;
+const TOWN_SAFE=140;  // px — inside this radius enemies cannot aggro (matches visual ring ~105 + buffer)
+
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   G.screen=id;
+  // Music routing
+  if(id==='menu')      AudioEngine.playMenu();
+  else if(id==='explore') AudioEngine.playExplore();
+  else if(id==='gameover') AudioEngine.playDefeat();
+  else if(id==='victory')  AudioEngine.playVictory();
+  // 'combat' music is set in beginCombat() based on enemy type
+  // 'paused','levelup','inventory','charsel' keep current music
 }
 
 // ================================================================
@@ -1525,7 +1644,7 @@ function show(id){
   px(mctx,SPRITES.strategist,140,8,4);
 })();
 
-document.getElementById('btn-start').onclick=()=>{show('charsel');buildChars();};
+document.getElementById('btn-start').onclick=()=>{AudioEngine.init();show('charsel');buildChars();};
 document.getElementById('btn-back').onclick=()=>show('menu');
 
 // ================================================================
@@ -1597,16 +1716,19 @@ function initWorld(){
     }
   });
 
-  // Spawn unique guardian — placed in the LEFT half, far from boss (which is right side)
+  // Spawn unique guardian — far from town AND far from boss corner
   const ug=b.enemies.find(e=>e.unique);
   if(ug){
-    // Boss is at WW-120 (right). Guardian spawns in left quadrant, far from town
     let ux, uy, tries=0;
     do {
-      ux = 80 + Math.random()*(WW*0.4-80);   // left 40% of map
-      uy = 60 + Math.random()*(WH-120);
+      ux = 120 + Math.random()*(WW*0.65-120);
+      uy = 80  + Math.random()*(WH-160);
       tries++;
-    } while((dst(ux,uy,400,300)<170||isSolid(ux,uy))&&tries<80);
+    } while(
+      (dst(ux,uy,400,300)<350 ||
+       dst(ux,uy,WW-120,WH/2)<200 ||
+       isSolid(ux,uy)) && tries<120
+    );
     const uhp=ug.baseHp+G.biomeIdx*12;
     G.enemies.push({id:id++,x:ux,y:uy,dx:0,dy:0,hp:uhp,maxHp:uhp,dead:false,boss:false,unique:true,etype:ug});
   }
@@ -1668,7 +1790,11 @@ function drawWorld(){
   // Draw terrain tiles
   const sp_base=SPRITES[b.tile];
   const sp_town=SPRITES[b.townTile||'town_tile'];
-  const sp_deco=SPRITES[b.deco];
+  const sp_deco =b.deco  ? SPRITES[b.deco]  : null;
+  const sp_deco2=b.deco2 ? SPRITES[b.deco2] : null;
+  const sp_deco3=b.deco3 ? SPRITES[b.deco3] : null;
+  const sp_deco4=b.deco4 ? SPRITES[b.deco4] : null;
+  const sp_deco5=b.deco5 ? SPRITES[b.deco5] : null;
   const c0=Math.floor(camX/TILE)-1,c1=Math.ceil((camX+W)/TILE)+1;
   const r0=Math.floor(camY/TILE)-1,r1=Math.ceil((camY+H)/TILE)+1;
 
@@ -1677,13 +1803,15 @@ function drawWorld(){
       const wx=c*TILE,wy=r*TILE;
       const sx=wx-camX,sy=wy-camY;
       const tval=terrainMap[r]?terrainMap[r][c]||0:0;
+      // Draw base tile (town tile for tval=1, base tile for everything else)
       const sp=tval===1?sp_town:sp_base;
       if(sp) px(cx,sp,sx,sy,TILE/sp[0].length);
-      if(tval===2 && sp_deco){
-        // draw deco over base
-        px(cx,sp_base,sx,sy,TILE/sp_base[0].length);
-        px(cx,sp_deco,sx,sy,TILE/sp_deco[0].length);
-      }
+      // Draw deco overlay on top of base
+      if(tval===2 && sp_deco)  px(cx,sp_deco, sx,sy,TILE/sp_deco[0].length);
+      if(tval===3 && sp_deco2) px(cx,sp_deco2,sx,sy,TILE/sp_deco2[0].length);
+      if(tval===4 && sp_deco3) px(cx,sp_deco3,sx,sy,TILE/sp_deco3[0].length);
+      if(tval===5 && sp_deco4) px(cx,sp_deco4,sx,sy,TILE/sp_deco4[0].length);
+      if(tval===6 && sp_deco5) px(cx,sp_deco5,sx,sy,TILE/sp_deco5[0].length);
     }
   }
 
@@ -1691,9 +1819,9 @@ function drawWorld(){
   cx.save();
   cx.strokeStyle='rgba(144,238,144,0.45)';cx.lineWidth=3;
   cx.setLineDash([6,4]);cx.beginPath();
-  cx.arc(400-camX,300-camY,105,0,Math.PI*2);cx.stroke();cx.restore();
+  cx.arc(TOWN_X-camX,TOWN_Y-camY,TOWN_SAFE,0,Math.PI*2);cx.stroke();cx.restore();
   cx.font="8px 'Press Start 2P'";cx.fillStyle='#90ee90';cx.textAlign='center';cx.textBaseline='alphabetic';
-  cx.fillText('TOWN',400-camX,300-camY-112);
+  cx.fillText('TOWN',TOWN_X-camX,TOWN_Y-camY-(TOWN_SAFE+7));
 
   // Enemies
   G.animTick=(G.animTick+1)%20;
@@ -1999,19 +2127,30 @@ function tick(){
     const e=G.aggroEnemy;
     if(!e||e.dead){resetAggro();return;}
     G.aggroTimer--;
-    // Charge straight at player
+    // Charge toward player — respects solid tiles (trees block the charge)
     const ddx=G.px-e.x, ddy=G.py-e.y;
     const dlen=Math.hypot(ddx,ddy)||1;
     const cspd = e.boss ? CHARGE_SPD*1.3 : CHARGE_SPD;
-    e.x+=ddx/dlen*cspd;
-    e.y+=ddy/dlen*cspd;
+    const nx2 = e.x + ddx/dlen*cspd;
+    const ny2 = e.y + ddy/dlen*cspd;
+    // Try to move; if blocked by a tree, give up the charge
+    const blockedX = isSolid(nx2, e.y);
+    const blockedY = isSolid(e.x, ny2);
+    if(blockedX && blockedY){
+      // Fully blocked by a tree — abort charge, enemy loses the player
+      resetAggro();
+      tickIdleEnemies();
+      return;
+    }
+    if(!blockedX) e.x=nx2;
+    if(!blockedY) e.y=ny2;
     // Hit!
     if(dst(e.x,e.y,G.px,G.py)<28){
       resetAggro();
       beginCombat(e);
       return;
     }
-    // Gave up
+    // Gave up (timer expired)
     if(G.aggroTimer<=0) resetAggro();
     tickIdleEnemies();
     return;
@@ -2019,6 +2158,11 @@ function tick(){
 
   // ── Normal movement (no aggro active) ───────────────────────
   G.frozen=false;
+
+  // Update inTown FIRST so aggro check below uses current frame value
+  G.inTown = dst(G.px,G.py,TOWN_X,TOWN_Y) < TOWN_SAFE;
+  if(G.inTown && G.player.hp<G.player.maxHp)
+    G.player.hp=Math.min(G.player.maxHp,G.player.hp+0.2);
 
   let dx=0,dy=0;
   if(!G.frozen){
@@ -2033,41 +2177,44 @@ function tick(){
     const ny=clamp(G.py+dy,20,WH-20);
     if(!isSolid(nx,G.py)) G.px=nx;
     if(!isSolid(G.px,ny)) G.py=ny;
+    // Footstep SFX when actually moving
+    if(dx!==0||dy!==0){
+      _footstepTick++;
+      if(_footstepTick>=18){_footstepTick=0;AudioEngine.sfxFootstep();}
+    } else { _footstepTick=0; }
   }
 
   for(const e of G.enemies){
     if(e.dead)continue;
-    // Check aggro trigger (but not if player is in town)
+    // Aggro: skip if player is in town OR a tree blocks line-of-sight
     const d=dst(e.x,e.y,G.px,G.py);
     const aggroRange = e.boss ? AGGRO_DETECT*1.4 : AGGRO_DETECT;
-    if(d<aggroRange && !G.inTown && G.aggroPhase===null){
+    if(d<aggroRange && !G.inTown && G.aggroPhase===null && hasLOS(e.x,e.y,G.px,G.py)){
       G.aggroEnemy=e;
       G.aggroPhase='warning';
       G.aggroTimer=AGGRO_WARN;
       G.frozen=true;
-      return; // stop everything, start warning
+      AudioEngine.sfxEncounter();
+      return;
     }
-    // Normal wander
+    // Normal wander — enemies bounce off solid tiles and stay out of town
     const enx=e.x+e.dx, eny=e.y+e.dy;
     if(!isSolid(enx,e.y)&&enx>60&&enx<WW-60) e.x=enx; else e.dx*=-1;
     if(!isSolid(e.x,eny)&&eny>60&&eny<WH-60) e.y=eny; else e.dy*=-1;
-    if(dst(e.x,e.y,400,300)<130){e.dx*=-1;e.dy*=-1;}
-    if(d<28){beginCombat(e);return;}
+    // Keep enemies out of town radius
+    if(dst(e.x,e.y,TOWN_X,TOWN_Y)<TOWN_SAFE+20){e.dx*=-1;e.dy*=-1;}
+    // Don't start combat if player is safely inside town
+    if(d<28 && !G.inTown){beginCombat(e);return;}
   }
-
-  G.inTown=dst(G.px,G.py,400,300)<90;
-  if(G.inTown&&G.player.hp<G.player.maxHp)
-    G.player.hp=Math.min(G.player.maxHp,G.player.hp+0.2);
 }
 
 function tickIdleEnemies(){
-  // Move all enemies that are NOT the aggro one normally
   for(const e of G.enemies){
     if(e.dead||e===G.aggroEnemy)continue;
     const enx=e.x+e.dx,eny=e.y+e.dy;
     if(!isSolid(enx,e.y)&&enx>60&&enx<WW-60) e.x=enx; else e.dx*=-1;
     if(!isSolid(e.x,eny)&&eny>60&&eny<WH-60) e.y=eny; else e.dy*=-1;
-    if(dst(e.x,e.y,400,300)<130){e.dx*=-1;e.dy*=-1;}
+    if(dst(e.x,e.y,TOWN_X,TOWN_Y)<TOWN_SAFE+20){e.dx*=-1;e.dy*=-1;}
   }
 }
 
@@ -2168,6 +2315,9 @@ function beginCombat(enemy){
   refreshBars();setActions(true);
   document.getElementById('q-panel').style.display='none';
   show('combat');
+  // Play battle music
+  if(enemy.boss || enemy.unique) AudioEngine.playBoss();
+  else AudioEngine.playBattle();
 }
 
 function refreshBars(){
@@ -2205,6 +2355,7 @@ document.getElementById('act-heavy').onclick=()=>doAction('heavy');
 document.getElementById('act-block').onclick=()=>doAction('block');
 document.getElementById('act-dodge').onclick=()=>doAction('dodge');
 document.getElementById('flee-btn').onclick=()=>{
+  AudioEngine.sfxFlee();
   G.player.hp=Math.max(1,G.player.hp-Math.floor(G.player.hp*.15));
   stopTimer();
   const e=G.enemies.find(e=>e.id===G.eid);
@@ -2272,26 +2423,31 @@ function resolve2(idx){
     if(G.cAction==='attack'){
       const dmg=Math.floor(p.atk*(0.85+Math.random()*.3));
       G.eHp=Math.max(0,G.eHp-dmg);
+      AudioEngine.sfxHit();
       addLog(`✅ Correct! ${dmg} damage!`,'#90ee90');shakeCanvas('c-enemy-canvas');
     }else if(G.cAction==='heavy'){
       const dmg=Math.floor(p.atk*2*(0.85+Math.random()*.3));
       G.eHp=Math.max(0,G.eHp-dmg);
+      AudioEngine.sfxCritical();
       addLog(`💥 Critical! ${dmg} damage!`,'#ffd700');shakeCanvas('c-enemy-canvas');
     }else if(G.cAction==='block'){
+      AudioEngine.sfxBlock();
       addLog('🛡️ Blocking incoming hit!','#4fc3f7');
     }else{
+      AudioEngine.sfxMiss();
       addLog('💨 Ready to dodge!','#ce93d8');
     }
   }else{
     const defReduction=Math.max(0.1, 1-(p.def*0.012)); // each DEF point reduces dmg by 1.2%, min 10%
     const pen=Math.floor(etype.baseAtk*(G.cAction==='heavy'?1.2:.6)*defReduction);
     p.hp=Math.max(0,p.hp-pen);
+    AudioEngine.sfxHit();
     addLog(`❌ Wrong! ${pen} dmg taken! (DEF -${Math.round((1-defReduction)*100)}%)`, '#f44336');
     shakeCanvas('c-player-canvas');
   }
 
   refreshBars();
-  if(G.player.hp<=0){addLog('💀 You have fallen...','#f44336');setTimeout(()=>show('gameover'),1800);return;}
+  if(G.player.hp<=0){AudioEngine.sfxCombatDefeat();addLog('💀 You have fallen...','#f44336');setTimeout(()=>show('gameover'),1800);return;}
   if(G.eHp<=0){addLog(`🏆 ${G.eBoss?BIOMES[G.biomeIdx].boss.name:etype.name} defeated!`,'#ffd700');setTimeout(()=>endCombat(true),1500);return;}
   setTimeout(enemyTurn,1100);
 }
@@ -2306,24 +2462,26 @@ function enemyTurn(){
   const dodged=(G.cAction==='dodge'&&G.cCorrect)||Math.random()<(p.dodge||0);
   const defReduction=Math.max(0.1, 1-(p.def*0.012));
   if(act==='attack'){
-    if(dodged)addLog(`💨 Dodged! (${Math.round((p.dodge||0)*100)}% chance)`,'#ce93d8');
+    if(dodged){AudioEngine.sfxMiss();addLog(`💨 Dodged! (${Math.round((p.dodge||0)*100)}% chance)`,'#ce93d8');}
     else if(hit){
       const dmg=Math.floor(etype.baseAtk*(blocked?.4:1)*(0.8+Math.random()*.4)*defReduction);
       p.hp=Math.max(0,p.hp-dmg);
+      if(blocked){AudioEngine.sfxBlock();}else{AudioEngine.sfxHit();}
       addLog(`👊 ${etype.name} hits ${dmg}${blocked?' (blocked)':''}!`,blocked?'#4fc3f7':'#f44336');
       shakeCanvas('c-player-canvas');
-    }else addLog(`${etype.name} misses!`,'#555');
+    }else{AudioEngine.sfxMiss();addLog(`${etype.name} misses!`,'#555');}
   }else if(act==='heavy'&&hit){
-    if(dodged)addLog('💨 Dodged heavy attack!','#ce93d8');
+    if(dodged){AudioEngine.sfxMiss();addLog('💨 Dodged heavy attack!','#ce93d8');}
     else{
       const dmg=Math.floor(etype.baseAtk*1.8*(0.8+Math.random()*.4)*defReduction);
       p.hp=Math.max(0,p.hp-dmg);
+      AudioEngine.sfxCritical();
       addLog(`💢 Heavy hit! ${dmg} damage!`,'#f44336');shakeCanvas('c-player-canvas');
     }
-  }else if(act==='block')addLog(`🛡️ ${etype.name} guards!`,'#777');
-  else addLog(`${etype.name} fumbles!`,'#555');
+  }else if(act==='block'){AudioEngine.sfxBlock();addLog(`🛡️ ${etype.name} guards!`,'#777');}
+  else{AudioEngine.sfxMiss();addLog(`${etype.name} fumbles!`,'#555');}
   refreshBars();
-  if(p.hp<=0){addLog('💀 You have fallen...','#f44336');setTimeout(()=>show('gameover'),1800);return;}
+  if(p.hp<=0){AudioEngine.sfxCombatDefeat();addLog('💀 You have fallen...','#f44336');setTimeout(()=>show('gameover'),1800);return;}
   setTimeout(()=>{document.getElementById('q-panel').style.display='none';setActions(true);G.cAnswered=false;},700);
 }
 
@@ -2351,6 +2509,7 @@ function endCombat(won){
 
   // If the unique guardian was just killed → unlock the boss
   if(won && G.eUnique){
+    AudioEngine.sfxWinUnique();
     G.uniqueKilled=true;
     const boss=G.enemies.find(e=>e.boss&&!e.dead);
     if(boss){
@@ -2369,6 +2528,7 @@ function endCombat(won){
   }
 
   if(won && G.eBoss){
+    AudioEngine.sfxWinBoss();
     G.defeated.add(G.biomeIdx);
     _showPendingDrops(()=>{
       if(G.pendingLevelUp){showLevelUp();return;}
@@ -2376,6 +2536,7 @@ function endCombat(won){
       else{G.biomeIdx++;initWorld();show('explore');layoutUI();showIntro();}
     });
   } else {
+    if(won) AudioEngine.sfxWinNormal();
     show('explore');
     _showPendingDrops(()=>{
       if(G.pendingLevelUp) showLevelUp();
@@ -2539,6 +2700,542 @@ joy.addEventListener('touchend',()=>{
   G.jdx=0; G.jdy=0;
   knob.style.transform='';
 });
+
+// ================================================================
+// AUDIO ENGINE — Procedural Music & SFX  (Web Audio API)
+// ================================================================
+const AudioEngine = (() => {
+  let ctx = null, masterVol = null, musicVol = null, sfxVol = null;
+  let am = null; // active music state
+
+  function init() {
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    masterVol = ctx.createGain(); masterVol.gain.value = 0.7; masterVol.connect(ctx.destination);
+    musicVol  = ctx.createGain(); musicVol.gain.value  = 0.38; musicVol.connect(masterVol);
+    sfxVol    = ctx.createGain(); sfxVol.gain.value    = 0.55; sfxVol.connect(masterVol);
+  }
+
+  /* Frequency helper: hz('C',4) = middle C */
+  function hz(n, oct) {
+    const s={C:0,Cs:1,D:2,Ds:3,E:4,F:5,Fs:6,G:7,Gs:8,A:9,As:10,B:11};
+    return 440 * Math.pow(2, (s[n] + (oct+1)*12 - 69) / 12);
+  }
+
+  /* Single oscillator note */
+  function tone(f, t0, dur, type, vol, out) {
+    if (!ctx) return null;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.value = f;
+    g.gain.setValueAtTime(0.001, t0);
+    g.gain.linearRampToValueAtTime(vol, t0 + Math.min(0.016, dur*0.15));
+    g.gain.setValueAtTime(vol, t0 + dur*0.72);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    o.connect(g); g.connect(out);
+    o.start(t0); o.stop(t0 + dur + 0.05);
+    return o;
+  }
+
+  /* Schedule array of [freq|null, beats] at bpm starting at t0 */
+  function seq(notes, bpm, out, type, vol, t0) {
+    const bt = 60/bpm; const nodes = []; let t = t0;
+    notes.forEach(([f, b]) => {
+      const d = b * bt;
+      if (f) { const o = tone(f, t, d*0.86, type, vol, out); if (o) nodes.push(o); }
+      t += d;
+    });
+    return { nodes, totalTime: t - t0 };
+  }
+
+  /* Loop a track — fn(t0) returns {nodes, totalTime} */
+  function loop(name, fn) {
+    if (am && am.name === name) return;
+    stop();
+    const state = { name, alive:true, nodes:[], timeout:null };
+    am = state;
+    function go(t0) {
+      if (!state.alive || !ctx) return;
+      const r = fn(t0);
+      state.nodes.push(...r.nodes);
+      state.timeout = setTimeout(() => {
+        if (state.nodes.length > 300) state.nodes = state.nodes.slice(-100);
+        go(t0 + r.totalTime);
+      }, Math.max(80, (r.totalTime - 0.4)*1000));
+    }
+    go(ctx.currentTime + 0.05);
+  }
+
+  function stop() {
+    if (am) {
+      am.alive = false; clearTimeout(am.timeout);
+      am.nodes.forEach(n => { try { n.stop(ctx.currentTime + 0.05); } catch(e){} });
+      am = null;
+    }
+  }
+
+  // ── Note data (shared ref) ─────────────────────────────────────
+  const H = hz;
+
+  /* MAIN MENU — calm mysterious arpeggios, A minor 70 BPM */
+  const MENU_MEL = [
+    [H('A',3),1],[H('C',4),.5],[H('E',4),.5],[H('A',4),1],
+    [H('G',4),.5],[H('E',4),.5],[H('C',4),.5],[H('A',3),.5],
+    [H('F',3),1],[H('A',3),.5],[H('C',4),.5],[H('F',4),1],
+    [H('E',4),.5],[H('C',4),.5],[H('A',3),.5],[H('G',3),.5],
+    [H('E',3),1],[H('G',3),.5],[H('B',3),.5],[H('E',4),1],
+    [H('D',4),.5],[H('B',3),.5],[H('G',3),.5],[H('E',3),.5],
+    [H('D',3),1],[H('F',3),.5],[H('A',3),.5],[H('D',4),1],
+    [H('C',4),.5],[H('A',3),.5],[H('F',3),.5],[H('E',3),.5],
+  ];
+  const MENU_BAS = [
+    [H('A',2),2],[H('A',2),2],[H('F',2),2],[H('G',2),2],
+    [H('E',2),2],[H('E',2),2],[H('D',2),2],[H('E',2),2],
+  ];
+
+  /* EXPLORE — upbeat adventure, C major 125 BPM */
+  const EXP_MEL = [
+    [H('C',4),.5],[H('E',4),.25],[H('G',4),.25],[H('C',5),.5],[H('B',4),.5],
+    [H('G',4),.5],[H('E',4),.5],[null,.5],
+    [H('F',4),.5],[H('A',4),.25],[H('C',5),.25],[H('F',5),.5],[H('E',5),.5],
+    [H('C',5),.5],[H('A',4),.5],[null,.5],
+    [H('G',4),.5],[H('B',4),.25],[H('D',5),.25],[H('G',5),.5],
+    [H('F',5),.25],[H('D',5),.25],[H('B',4),.5],[H('G',4),.5],[null,.5],
+    [H('C',5),1],[null,.5],[H('G',4),.5],
+    [H('E',4),.5],[H('G',4),.5],[H('C',5),1],
+  ];
+  const EXP_BAS = [
+    [H('C',3),1],[H('G',2),1],[H('F',2),1],[H('G',2),1],
+    [H('C',3),1],[H('G',2),1],[H('A',2),1],[H('G',2),1],
+  ];
+  const EXP_PAD = [
+    [H('E',3),.5],[null,.5],[H('G',3),.5],[null,.5],
+    [H('C',3),.5],[null,.5],[H('E',3),.5],[null,.5],
+    [H('F',3),.5],[null,.5],[H('A',3),.5],[null,.5],
+    [H('D',3),.5],[null,.5],[H('F',3),.5],[null,.5],
+  ];
+
+  /* BATTLE — fast intense, D minor 165 BPM */
+  const BAT_MEL = [
+    [H('D',4),.25],[H('F',4),.25],[H('A',4),.25],[H('D',5),.25],
+    [H('C',5),.25],[H('A',4),.25],[H('F',4),.25],[H('D',4),.25],
+    [H('Ds',4),.25],[H('G',4),.25],[H('As',4),.25],[H('Ds',5),.25],
+    [H('D',5),.25],[H('As',4),.25],[H('G',4),.25],[H('Ds',4),.25],
+    [H('F',4),.5],[H('A',4),.25],[H('C',5),.25],
+    [H('F',5),.5],[H('E',5),.25],[H('C',5),.25],
+    [H('D',5),.5],[H('A',4),.5],[H('G',4),1],
+    [H('As',4),.5],[H('D',5),.25],[H('F',5),.25],
+    [H('E',5),.5],[H('C',5),.25],[H('A',4),.25],
+    [H('Gs',4),.5],[H('F',4),.5],[H('D',4),1],
+  ];
+  const BAT_BAS = [
+    [H('D',3),.5],[H('D',3),.5],[H('Ds',3),.5],[H('Ds',3),.5],
+    [H('F',3),.5],[H('F',3),.5],[H('G',3),.5],[H('G',3),.5],
+    [H('D',3),.5],[H('D',3),.5],[H('C',3),.5],[H('C',3),.5],
+    [H('As',2),.5],[H('As',2),.5],[H('A',2),.5],[H('A',2),.5],
+  ];
+  const BAT_PRC = [ /* rhythmic pulse */
+    [H('D',2),.25],[null,.25],[H('D',2),.25],[null,.25],
+    [H('D',2),.25],[null,.25],[H('G',2),.25],[null,.25],
+  ];
+
+  /* BOSS BATTLE — chromatic menace, 185 BPM */
+  const BOSS_MEL = [
+    [H('D',4),.125],[H('Ds',4),.125],[H('D',4),.25],[H('A',4),.25],[H('F',4),.25],
+    [H('D',4),.125],[H('Cs',4),.125],[H('D',4),.25],[H('As',4),.25],[H('G',4),.25],
+    [H('F',4),.5],[H('A',4),.25],[H('D',5),.25],
+    [H('C',5),.25],[H('A',4),.25],[H('F',4),.25],[H('D',4),.25],
+    [H('G',4),.125],[H('Gs',4),.125],[H('G',4),.25],[H('D',5),.25],[H('As',4),.25],
+    [H('G',4),.125],[H('Fs',4),.125],[H('G',4),.25],[H('Ds',5),.25],[H('B',4),.25],
+    [H('A',4),.5],[H('D',5),.25],[H('F',5),.25],
+    [H('E',5),.25],[H('Cs',5),.25],[H('A',4),.25],[H('Fs',4),.25],
+    [H('D',4),1],
+  ];
+  const BOSS_BAS = [
+    [H('D',2),.25],[H('D',2),.25],[H('A',2),.25],[H('D',2),.25],
+    [H('G',2),.25],[H('G',2),.25],[H('D',2),.25],[H('D',2),.25],
+    [H('F',2),.25],[H('F',2),.25],[H('C',3),.25],[H('F',2),.25],
+    [H('E',2),.25],[H('E',2),.25],[H('B',2),.25],[H('E',2),.25],
+    [H('D',2),.25],[H('D',2),.25],[H('A',2),.25],[H('D',2),.25],
+    [H('Cs',2),.25],[H('Cs',2),.25],[H('G',2),.25],[H('Cs',2),.25],
+    [H('F',2),.25],[H('F',2),.25],[H('A',2),.25],[H('F',2),.25],
+    [H('G',2),.5],[H('D',2),.5],
+  ];
+
+  /* VICTORY — triumphant C major fanfare 130 BPM */
+  const VIC_MEL = [
+    [H('C',4),.5],[H('C',4),.5],[H('C',4),.5],[H('E',4),.5],
+    [H('G',4),.75],[null,.25],[H('G',4),.5],[H('A',4),.5],
+    [H('G',4),1],[null,.5],[H('F',4),.5],
+    [H('E',4),.5],[H('F',4),.5],[H('E',4),.5],[H('D',4),.5],
+    [H('C',5),1.5],[null,.5],
+    [H('G',4),.5],[H('F',4),.5],[H('E',4),.5],[H('D',4),.5],
+    [H('C',5),1.5],[null,.5],
+    [H('E',5),.5],[H('D',5),.5],[H('C',5),1],[null,1],
+  ];
+  const VIC_HRM = [
+    [H('E',4),.5],[H('G',4),.5],[H('C',5),.5],[H('G',4),.5],
+    [H('D',5),.75],[null,.25],[H('D',5),.5],[H('E',5),.5],
+    [H('D',5),1],[null,1],
+    [H('G',4),.5],[H('A',4),.5],[H('G',4),.5],[H('F',4),.5],
+    [H('E',5),1.5],[null,.5],
+    [H('B',4),.5],[H('A',4),.5],[H('G',4),.5],[H('F',4),.5],
+    [H('E',5),1.5],[null,.5],
+    [H('G',5),.5],[H('F',5),.5],[H('E',5),1],[null,1],
+  ];
+
+  /* DEFEAT — somber, A minor 55 BPM */
+  const DEF_MEL = [
+    [H('A',4),1.5],[H('G',4),1.5],[H('F',4),1.5],[H('E',4),1.5],
+    [H('D',4),1.5],[H('C',4),1.5],[H('B',3),1.5],[H('A',3),3],
+    [null,2],
+  ];
+  const DEF_BAS = [
+    [H('A',2),2],[H('E',2),2],[H('D',2),2],[H('E',2),2],
+    [H('D',2),2],[H('A',1),4],[null,3],
+  ];
+
+  // ── Public Track Players ────────────────────────────────────────
+  function playMenu()   { loop('menu',   t => { const r=seq(MENU_MEL,70,musicVol,'sine',.17,t); const s=seq(MENU_BAS,70,musicVol,'sine',.11,t); return {nodes:[...r.nodes,...s.nodes],totalTime:r.totalTime}; }); }
+  function playExplore(){ loop('explore',t => { const r=seq(EXP_MEL,125,musicVol,'triangle',.15,t); const s=seq(EXP_BAS,125,musicVol,'triangle',.12,t); const p=seq(EXP_PAD,125,musicVol,'sine',.08,t); return {nodes:[...r.nodes,...s.nodes,...p.nodes],totalTime:r.totalTime}; }); }
+  function playBattle() { loop('battle', t => { const r=seq(BAT_MEL,165,musicVol,'sawtooth',.12,t); const s=seq(BAT_BAS,165,musicVol,'square',.10,t); const p=seq(BAT_PRC,165,musicVol,'square',.09,t); return {nodes:[...r.nodes,...s.nodes,...p.nodes],totalTime:r.totalTime}; }); }
+  function playBoss()   { loop('boss',   t => { const r=seq(BOSS_MEL,185,musicVol,'sawtooth',.12,t); const s=seq(BOSS_BAS,185,musicVol,'square',.11,t); return {nodes:[...r.nodes,...s.nodes],totalTime:r.totalTime}; }); }
+  function playVictory(){ loop('victory',t => { const r=seq(VIC_MEL,130,musicVol,'triangle',.19,t); const s=seq(VIC_HRM,130,musicVol,'sine',.14,t); return {nodes:[...r.nodes,...s.nodes],totalTime:r.totalTime}; }); }
+  function playDefeat() { loop('defeat', t => { const r=seq(DEF_MEL,55,musicVol,'sine',.17,t); const s=seq(DEF_BAS,55,musicVol,'sine',.12,t); return {nodes:[...r.nodes,...s.nodes],totalTime:r.totalTime}; }); }
+
+  // ── SFX ─────────────────────────────────────────────────────────
+  function sfxEncounter() {
+    if (!ctx) return;
+    [[400,.1],[600,.1],[850,.14]].forEach(([f,d],i) => tone(f, ctx.currentTime+i*.13, d, 'square', .28, sfxVol));
+  }
+  function sfxLevelUp() {
+    if (!ctx) return;
+    const j=[[H('C',4),.2],[H('E',4),.2],[H('G',4),.2],[H('C',5),.3],[H('E',5),.3],[H('G',5),.55]];
+    let t=ctx.currentTime; j.forEach(([f,d])=>{tone(f,t,d*.85,'triangle',.32,sfxVol);t+=d;});
+  }
+  function sfxItemUse() {
+    if (!ctx) return;
+    [523,659,784,1047,1319].forEach((f,i) => tone(f, ctx.currentTime+i*.065, .13, 'sine', .26, sfxVol));
+  }
+  function sfxFootstep() {
+    if (!ctx) return;
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(85,ctx.currentTime); o.frequency.exponentialRampToValueAtTime(38,ctx.currentTime+.07);
+    g.gain.setValueAtTime(.1,ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.07);
+    o.connect(g); g.connect(sfxVol); o.start(); o.stop(ctx.currentTime+.09);
+  }
+
+  /* HIT — solid thud + metallic clang */
+  function sfxHit() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    // Low thud
+    const o1=ctx.createOscillator(), g1=ctx.createGain();
+    o1.type='sine'; o1.frequency.setValueAtTime(180,t); o1.frequency.exponentialRampToValueAtTime(55,t+.12);
+    g1.gain.setValueAtTime(.36,t); g1.gain.exponentialRampToValueAtTime(.001,t+.14);
+    o1.connect(g1); g1.connect(sfxVol); o1.start(t); o1.stop(t+.16);
+    // Impact click (noise burst via high-freq osc)
+    const o2=ctx.createOscillator(), g2=ctx.createGain();
+    o2.type='square'; o2.frequency.setValueAtTime(620,t); o2.frequency.exponentialRampToValueAtTime(200,t+.06);
+    g2.gain.setValueAtTime(.22,t); g2.gain.exponentialRampToValueAtTime(.001,t+.07);
+    o2.connect(g2); g2.connect(sfxVol); o2.start(t); o2.stop(t+.08);
+  }
+
+  /* CRITICAL — sharp crack + rising power surge */
+  function sfxCritical() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    // Heavy crack
+    [0, .04, .09].forEach((dt, i) => {
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='sawtooth';
+      o.frequency.setValueAtTime(350-i*60, t+dt);
+      o.frequency.exponentialRampToValueAtTime(80, t+dt+.13);
+      g.gain.setValueAtTime(.28-i*.05, t+dt);
+      g.gain.exponentialRampToValueAtTime(.001, t+dt+.15);
+      o.connect(g); g.connect(sfxVol); o.start(t+dt); o.stop(t+dt+.17);
+    });
+    // Power surge sweep up
+    const os=ctx.createOscillator(), gs=ctx.createGain();
+    os.type='square'; os.frequency.setValueAtTime(120,t+.05); os.frequency.exponentialRampToValueAtTime(900,t+.3);
+    gs.gain.setValueAtTime(.001,t+.05); gs.gain.linearRampToValueAtTime(.18,t+.12); gs.gain.exponentialRampToValueAtTime(.001,t+.35);
+    os.connect(gs); gs.connect(sfxVol); os.start(t+.05); os.stop(t+.38);
+  }
+
+  /* BLOCK — heavy metallic clang with reverb tail */
+  function sfxBlock() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    // Metal clang: two detuned square oscillators
+    [[310, 318], [620, 630]].forEach(([f1, f2], layer) => {
+      [f1, f2].forEach(f => {
+        const o=ctx.createOscillator(), g=ctx.createGain();
+        o.type='square'; o.frequency.value=f;
+        const vol = layer===0 ? .2 : .12;
+        g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+.45);
+        o.connect(g); g.connect(sfxVol); o.start(t); o.stop(t+.5);
+      });
+    });
+    // Low bash thud
+    const ob=ctx.createOscillator(), gb=ctx.createGain();
+    ob.type='sine'; ob.frequency.setValueAtTime(140,t); ob.frequency.exponentialRampToValueAtTime(60,t+.08);
+    gb.gain.setValueAtTime(.3,t); gb.gain.exponentialRampToValueAtTime(.001,t+.1);
+    ob.connect(gb); gb.connect(sfxVol); ob.start(t); ob.stop(t+.12);
+  }
+
+  /* MISS — airy whoosh, no impact */
+  function sfxMiss() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    // Whoosh: noise-like via detuned saws + fast filter sweep
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type='sawtooth'; o.frequency.setValueAtTime(800,t); o.frequency.exponentialRampToValueAtTime(180,t+.18);
+    g.gain.setValueAtTime(.001,t); g.gain.linearRampToValueAtTime(.14,t+.04); g.gain.exponentialRampToValueAtTime(.001,t+.2);
+    o.connect(g); g.connect(sfxVol); o.start(t); o.stop(t+.22);
+    // Dry click at very start
+    const oc=ctx.createOscillator(), gc=ctx.createGain();
+    oc.type='sine'; oc.frequency.value=1200;
+    gc.gain.setValueAtTime(.08,t); gc.gain.exponentialRampToValueAtTime(.001,t+.025);
+    oc.connect(gc); gc.connect(sfxVol); oc.start(t); oc.stop(t+.03);
+  }
+
+  /* WIN (NORMAL) — quick cheerful 4-note ding */
+  function sfxWinNormal() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    [[H('C',4),.12],[H('E',4),.12],[H('G',4),.12],[H('C',5),.28]].forEach(([f,d],i) => {
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='triangle'; o.frequency.value=f;
+      const at=t+i*.1;
+      g.gain.setValueAtTime(.001,at); g.gain.linearRampToValueAtTime(.3,at+.02);
+      g.gain.setValueAtTime(.3,at+d*.7); g.gain.exponentialRampToValueAtTime(.001,at+d+.06);
+      o.connect(g); g.connect(sfxVol); o.start(at); o.stop(at+d+.08);
+    });
+  }
+
+  /* WIN (UNIQUE/GUARDIAN) — 6-note ascending fanfare with harmonic */
+  function sfxWinUnique() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const mel=[[H('C',4),.1],[H('E',4),.1],[H('G',4),.1],[H('C',5),.1],[H('E',5),.1],[H('G',5),.35]];
+    const hrm=[[H('E',4),.1],[H('G',4),.1],[H('C',5),.1],[H('E',5),.1],[H('G',5),.1],[H('C',6),.35]];
+    mel.forEach(([f,d],i)=>{
+      const at=t+i*.09;
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='triangle'; o.frequency.value=f;
+      g.gain.setValueAtTime(.001,at); g.gain.linearRampToValueAtTime(.28,at+.02);
+      g.gain.setValueAtTime(.28,at+d*.75); g.gain.exponentialRampToValueAtTime(.001,at+d+.07);
+      o.connect(g); g.connect(sfxVol); o.start(at); o.stop(at+d+.09);
+    });
+    hrm.forEach(([f,d],i)=>{
+      const at=t+i*.09;
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(.001,at); g.gain.linearRampToValueAtTime(.15,at+.02);
+      g.gain.setValueAtTime(.15,at+d*.75); g.gain.exponentialRampToValueAtTime(.001,at+d+.07);
+      o.connect(g); g.connect(sfxVol); o.start(at); o.stop(at+d+.09);
+    });
+    // Gold shimmer tail — high twinkling notes
+    [H('C',6),H('E',6),H('G',6)].forEach((f,i)=>{
+      const at=t+.55+i*.07;
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(.12,at); g.gain.exponentialRampToValueAtTime(.001,at+.18);
+      o.connect(g); g.connect(sfxVol); o.start(at); o.stop(at+.2);
+    });
+  }
+
+  /* WIN (BOSS) — epic 3-part triumphant fanfare */
+  function sfxWinBoss() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    // Brass-like chord stabs
+    const stabs=[[H('C',3),H('G',3),H('C',4)],[H('F',3),H('C',4),H('F',4)],[H('G',3),H('D',4),H('G',4)]];
+    stabs.forEach((chord,si)=>{
+      const at=t+si*.22;
+      chord.forEach(f=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.type='sawtooth'; o.frequency.value=f;
+        g.gain.setValueAtTime(.001,at); g.gain.linearRampToValueAtTime(.18,at+.025);
+        g.gain.setValueAtTime(.16,at+.12); g.gain.exponentialRampToValueAtTime(.001,at+.2);
+        o.connect(g); g.connect(sfxVol); o.start(at); o.stop(at+.22);
+      });
+    });
+    // Triumphant melody rise
+    const mel2=[[H('C',4),.1],[H('E',4),.1],[H('G',4),.1],[H('C',5),.1],[H('E',5),.1],[H('G',5),.15],[H('C',6),.5]];
+    mel2.forEach(([f,d],i)=>{
+      const at=t+.68+i*.1;
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='triangle'; o.frequency.value=f;
+      g.gain.setValueAtTime(.001,at); g.gain.linearRampToValueAtTime(.3,at+.02);
+      g.gain.setValueAtTime(.3,at+d*.7); g.gain.exponentialRampToValueAtTime(.001,at+d+.1);
+      o.connect(g); g.connect(sfxVol); o.start(at); o.stop(at+d+.12);
+    });
+    // Low bass boom at the end
+    const at2=t+1.42;
+    const ob=ctx.createOscillator(),gb=ctx.createGain();
+    ob.type='sine'; ob.frequency.setValueAtTime(80,at2); ob.frequency.exponentialRampToValueAtTime(40,at2+.35);
+    gb.gain.setValueAtTime(.4,at2); gb.gain.exponentialRampToValueAtTime(.001,at2+.38);
+    ob.connect(gb); gb.connect(sfxVol); ob.start(at2); ob.stop(at2+.4);
+    // Sparkling top twinkles
+    [H('C',6),H('G',6),H('E',6),H('C',7)].forEach((f,i)=>{
+      const at3=t+1.5+i*.08;
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(.14,at3); g.gain.exponentialRampToValueAtTime(.001,at3+.22);
+      o.connect(g); g.connect(sfxVol); o.start(at3); o.stop(at3+.24);
+    });
+  }
+
+  /* COMBAT DEFEAT — short downward death toll (separate from defeat music) */
+  function sfxCombatDefeat() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    // Descending minor toll
+    [[H('A',4),.25],[H('F',4),.25],[H('D',4),.25],[H('A',3),.5]].forEach(([f,d],i)=>{
+      const at=t+i*.28;
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(.001,at); g.gain.linearRampToValueAtTime(.28,at+.03);
+      g.gain.setValueAtTime(.28,at+d*.6); g.gain.exponentialRampToValueAtTime(.001,at+d+.15);
+      o.connect(g); g.connect(sfxVol); o.start(at); o.stop(at+d+.18);
+    });
+    // Low rumble
+    const ob=ctx.createOscillator(),gb=ctx.createGain();
+    ob.type='sine'; ob.frequency.setValueAtTime(55,t+.8); ob.frequency.exponentialRampToValueAtTime(28,t+1.4);
+    gb.gain.setValueAtTime(.3,t+.8); gb.gain.exponentialRampToValueAtTime(.001,t+1.45);
+    ob.connect(gb); gb.connect(sfxVol); ob.start(t+.8); ob.stop(t+1.48);
+  }
+
+  /* FLEE — frantic ascending scramble */
+  function sfxFlee() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    // Rapid rising notes like panicked footsteps
+    [220,277,330,415,523,659,830].forEach((f,i) => {
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='square'; o.frequency.value=f;
+      g.gain.setValueAtTime(.18,t+i*.045); g.gain.exponentialRampToValueAtTime(.001,t+i*.045+.07);
+      o.connect(g); g.connect(sfxVol); o.start(t+i*.045); o.stop(t+i*.045+.09);
+    });
+    // Descending "oh no" bass drop
+    const ob=ctx.createOscillator(), gb=ctx.createGain();
+    ob.type='sine'; ob.frequency.setValueAtTime(300,t+.32); ob.frequency.exponentialRampToValueAtTime(60,t+.62);
+    gb.gain.setValueAtTime(.22,t+.32); gb.gain.exponentialRampToValueAtTime(.001,t+.65);
+    ob.connect(gb); gb.connect(sfxVol); ob.start(t+.32); ob.stop(t+.67);
+  }
+
+  return { init, stop, playMenu, playExplore, playBattle, playBoss, playVictory, playDefeat, sfxEncounter, sfxLevelUp, sfxItemUse, sfxFootstep, sfxHit, sfxCritical, sfxBlock, sfxMiss, sfxFlee, sfxWinNormal, sfxWinUnique, sfxWinBoss, sfxCombatDefeat };
+})();
+
+// Footstep timer (frames between steps)
+let _footstepTick = 0;
+
+// ================================================================
+// CHEAT CODE  —  Keyboard: ↑ ↑ ↓ ↓ ← → ← → B
+//                Mobile:   Tap game title 7× within 3 seconds
+// ================================================================
+const KONAMI = ['arrowup','arrowup','arrowdown','arrowdown',
+                'arrowleft','arrowright','arrowleft','arrowright','b'];
+let _konamiIdx = 0;
+
+window.addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if(k === KONAMI[_konamiIdx]){ _konamiIdx++; }
+  else { _konamiIdx = (k === KONAMI[0]) ? 1 : 0; }
+  if(_konamiIdx === KONAMI.length){ _konamiIdx = 0; openCheat(); }
+  if(k === 'escape' && document.getElementById('cheat-panel').style.display !== 'none'){
+    closeCheat();
+  }
+});
+
+// Mobile: tap the title 7 times within 3 seconds
+let _tapCount = 0, _tapTimer = null;
+const TAP_TARGET = 7;
+document.addEventListener('DOMContentLoaded', () => {
+  const title = document.getElementById('menu-title');
+  if(title){
+    title.addEventListener('touchstart', e => {
+      e.stopPropagation();
+      _tapCount++;
+      clearTimeout(_tapTimer);
+      // Flash title slightly on each tap so user gets feedback
+      title.style.opacity = '0.6';
+      setTimeout(() => title.style.opacity = '', 80);
+      if(_tapCount >= TAP_TARGET){
+        _tapCount = 0; openCheat(); return;
+      }
+      _tapTimer = setTimeout(() => { _tapCount = 0; }, 3000);
+    }, {passive:true});
+  }
+});
+
+function openCheat(){
+  // Update subtitle to show the right hint based on device
+  const hint = document.getElementById('cheat-hint');
+  if(hint){
+    hint.textContent = isTouchDevice()
+      ? 'Tap title ×7 activated'
+      : '↑↑↓↓←→←→B activated';
+  }
+  const p = document.getElementById('cheat-panel');
+  p.style.display = 'flex';
+  cheatStatus('');
+}
+function closeCheat(){
+  document.getElementById('cheat-panel').style.display = 'none';
+  if(G.screen === 'explore') startLoop();
+}
+function cheatStatus(msg){ document.getElementById('cheat-status').textContent = msg; }
+
+function cheatWarp(biomeIdx){
+  stopLoop();
+  // Mark all earlier biomes as defeated so the game won't revert
+  for(let i = 0; i < biomeIdx; i++) G.defeated.add(i);
+  G.biomeIdx = biomeIdx;
+  G.player.hp = G.player.maxHp;  // heal on warp
+  initWorld();
+  closeCheat();
+  show('explore');
+  layoutUI();
+  showIntro();
+  cheatStatus('✔ Warped to ' + BIOMES[biomeIdx].name);
+}
+
+function cheatMaxHP(){
+  if(!G.player){ cheatStatus('⚠ No player yet'); return; }
+  G.player.hp = G.player.maxHp;
+  updateHUD();
+  cheatStatus('✔ HP fully restored!');
+}
+
+function cheatKillAll(){
+  if(!G.enemies.length){ cheatStatus('⚠ No enemies on map'); return; }
+  let killed = 0;
+  G.enemies.forEach(e => { if(!e.dead && !e.boss){ e.dead = true; killed++; } });
+  resetAggro();
+  cheatStatus('✔ Killed ' + killed + ' enemies');
+}
+
+function cheatUnlockBoss(){
+  const boss = G.enemies.find(e => e.boss && !e.dead);
+  if(!boss){ cheatStatus('⚠ No locked boss found'); return; }
+  boss.locked = false;
+  boss.dx = (Math.random()-.5)*1.2;
+  boss.dy = (Math.random()-.5)*1.2;
+  G.uniqueKilled = true;
+  updateHUD();
+  cheatStatus('✔ Boss unlocked!');
+}
+
+function cheatLevelUp(){
+  if(!G.player){ cheatStatus('⚠ No player yet'); return; }
+  G.player.level = Math.min((G.player.level||1)+1, 20);
+  G.player.statPoints = (G.player.statPoints||0)+3;
+  G.pendingLevelUp = true;
+  closeCheat();
+  showLevelUp();
+}
+
 </script>
 </body>
 </html>
