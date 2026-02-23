@@ -78,6 +78,23 @@ body{display:flex;align-items:center;justify-content:center;}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+@keyframes popIn{0%{transform:translateX(-50%) scale(.7);opacity:0}60%{transform:translateX(-50%) scale(1.1)}100%{transform:translateX(-50%) scale(1);opacity:1}}
+.lu-stat-row{display:flex;justify-content:space-between;align-items:center;background:#0d1117;border:1px solid #333;padding:8px 12px;border-radius:4px;}
+.lu-label{font-family:'Press Start 2P',monospace;font-size:8px;color:#ccc;}
+.lu-controls{display:flex;align-items:center;gap:10px;}
+.lu-btn{font-family:'Press Start 2P',monospace;font-size:12px;background:#1a1a2e;border:2px solid #444;color:#ffd700;width:28px;height:28px;cursor:pointer;line-height:1;}
+.lu-btn:hover{background:#2a2a4e;}
+.lu-val{font-family:'Press Start 2P',monospace;font-size:11px;color:#ffd700;min-width:22px;text-align:center;}
+.item-row{display:flex;align-items:center;gap:10px;background:#0d1117;border:1px solid #333;padding:8px 10px;}
+.item-icon{font-size:22px;flex-shrink:0;}
+.item-info{flex:1;}
+.item-name{font-family:'Press Start 2P',monospace;font-size:8px;color:#ffd700;margin-bottom:3px;}
+.item-desc{font-size:9px;color:#777;line-height:1.5;}
+.item-use{font-family:'Press Start 2P',monospace;font-size:7px;background:transparent;border:1px solid #4caf50;color:#4caf50;padding:5px 8px;cursor:pointer;}
+.item-use:disabled{border-color:#333;color:#333;cursor:default;}
+#xpbar-wrap{position:absolute;top:36px;left:0;right:0;height:6px;background:rgba(0,0,0,.6);z-index:11;}
+#xpbar{height:100%;background:linear-gradient(90deg,#4fc3f7,#9c27b0);transition:width .4s;}
+#hud-level{font-family:'Press Start 2P',monospace;font-size:7px;color:#ce93d8;white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -105,11 +122,13 @@ body{display:flex;align-items:center;justify-content:center;}
         <div class="hplabel" id="hud-name">Player</div>
         <div class="hpbg"><div class="hpfill" id="hud-hp" style="width:100%;background:#4caf50"></div></div>
       </div>
+      <div id="hud-level">Lv.1</div>
       <div id="hud-biome">🌲 Forest</div>
       <div id="hud-bosses">👑 0/4</div>
       <div id="hud-heal">💚 HEALING</div>
       <button class="pbtn pbtn-sm" id="hud-pause-btn" style="color:#aaa;border-color:#555">⏸</button>
     </div>
+    <div id="xpbar-wrap"><div id="xpbar" style="width:0%"></div></div>
     <div id="minimap"><canvas id="mm-canvas" width="120" height="70"></canvas></div>
     <div id="joy"><div id="joy-knob"></div></div>
     <button class="pbtn pbtn-sm" id="pause-explore-btn" style="color:#aaa;border-color:#555">⏸ PAUSE</button>
@@ -121,6 +140,9 @@ body{display:flex;align-items:center;justify-content:center;}
         <div id="intro-tip"  style="font-size:10px;color:#777;margin-bottom:20px;line-height:1.6"></div>
         <button class="pbtn pbtn-sm" id="intro-go" style="color:#4caf50;border-color:#4caf50">⚔️ Let's Go!</button>
       </div>
+    </div>
+    <div id="inventory-btn" style="position:absolute;top:44px;right:6px;display:none;z-index:15;">
+      <button class="pbtn pbtn-sm" onclick="showInventory()" style="color:#ffd700;border-color:#ffd700;font-size:7px;padding:5px 8px;">🎒 BAG</button>
     </div>
   </div>
 
@@ -193,6 +215,40 @@ body{display:flex;align-items:center;justify-content:center;}
     <div style="font-size:13px;color:#ccc;margin-bottom:6px">All 4 Biome Bosses Defeated</div>
     <div style="font-size:18px;color:#888;margin-bottom:36px">🌲 🏜️ ❄️ 🌋</div>
     <button class="pbtn" id="btn-v-menu" style="color:#ffd700;border-color:#ffd700">🏠 Play Again</button>
+  </div>
+  <div id="levelup" class="screen" style="background:rgba(0,0,0,0.97);">
+    <div class="modal-box" style="border-color:#ffd700;max-width:420px;">
+      <div class="pf" style="font-size:16px;color:#ffd700;margin-bottom:4px;text-shadow:2px 2px 0 #b8860b">⬆ LEVEL UP!</div>
+      <div id="lu-level" class="pf" style="font-size:10px;color:#ccc;margin-bottom:16px"></div>
+      <div id="lu-points" class="pf" style="font-size:8px;color:#ff9800;margin-bottom:14px"></div>
+      <div style="display:grid;gap:10px;margin-bottom:16px;">
+        <div class="lu-stat-row" id="lu-kn">
+          <div class="lu-label">📖 Knowledge <span class="lu-desc" style="color:#888;font-size:8px">+Damage</span></div>
+          <div class="lu-controls"><button class="lu-btn" onclick="luAllocate('kn',-1)">−</button><span id="lu-kn-val" class="lu-val">0</span><button class="lu-btn" onclick="luAllocate('kn',1)">+</button></div>
+        </div>
+        <div class="lu-stat-row" id="lu-ph">
+          <div class="lu-label">🏛️ Philosophy <span class="lu-desc" style="color:#888;font-size:8px">+Defense</span></div>
+          <div class="lu-controls"><button class="lu-btn" onclick="luAllocate('ph',-1)">−</button><span id="lu-ph-val" class="lu-val">0</span><button class="lu-btn" onclick="luAllocate('ph',1)">+</button></div>
+        </div>
+        <div class="lu-stat-row" id="lu-qs">
+          <div class="lu-label">💬 Quick Speak <span class="lu-desc" style="color:#888;font-size:8px">+Dodge chance</span></div>
+          <div class="lu-controls"><button class="lu-btn" onclick="luAllocate('qs',-1)">−</button><span id="lu-qs-val" class="lu-val">0</span><button class="lu-btn" onclick="luAllocate('qs',1)">+</button></div>
+        </div>
+      </div>
+      <div id="lu-stat-preview" style="font-size:8px;color:#555;margin-bottom:12px;font-family:monospace;line-height:1.7;text-align:left;"></div>
+      <button class="pbtn" id="lu-confirm" style="color:#ffd700;border-color:#ffd700;width:100%" onclick="luConfirm()">✔ Confirm</button>
+    </div>
+  </div>
+
+  <div id="itemdrop" style="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);border:2px solid #ffd700;padding:10px 18px;font-family:'Press Start 2P',monospace;font-size:8px;color:#ffd700;z-index:999;display:none;text-align:center;pointer-events:none;"></div>
+
+  <div id="inventory" class="screen" style="background:rgba(0,0,0,.97);">
+    <div class="modal-box" style="border-color:#ffd700;max-width:460px;max-height:90vh;overflow-y:auto;">
+      <div class="pf" style="font-size:14px;color:#ffd700;margin-bottom:4px">🎒 INVENTORY</div>
+      <div id="inv-stats" style="font-size:8px;color:#777;margin-bottom:12px;font-family:monospace;line-height:1.8;"></div>
+      <div id="inv-items" style="display:grid;gap:8px;margin-bottom:14px;"></div>
+      <button class="pbtn pbtn-sm" id="inv-close" style="color:#aaa;border-color:#555;width:100%">← Close</button>
+    </div>
   </div>
 </div>
 
@@ -1164,8 +1220,210 @@ const BIOMES=[
 ];
 
 // ================================================================
-// TERRAIN MAP
+// ITEMS
 // ================================================================
+const ITEMS=[
+  // Common drops (any enemy)
+  {id:'scroll_minor',name:'Minor Scroll',icon:'📜',desc:'Restore 20 HP',rarity:'common',
+   effect:p=>{p.hp=Math.min(p.maxHp,p.hp+20);},effectDesc:'+20 HP',consumable:true},
+  {id:'herb',name:'Forest Herb',icon:'🌿',desc:'Restore 40 HP',rarity:'common',
+   effect:p=>{p.hp=Math.min(p.maxHp,p.hp+40);},effectDesc:'+40 HP',consumable:true},
+  {id:'lucky_charm',name:'Lucky Charm',icon:'🍀',desc:'+5% dodge chance permanently',rarity:'uncommon',
+   effect:p=>{p.dodge=Math.min(0.8,p.dodge+0.05);},effectDesc:'+5% Dodge',consumable:true},
+  {id:'focus_stone',name:'Focus Stone',icon:'💎',desc:'+3 attack permanently',rarity:'uncommon',
+   effect:p=>{p.atk+=3;},effectDesc:'+3 ATK',consumable:true},
+  {id:'iron_veil',name:'Iron Veil',icon:'🛡️',desc:'+4 defense permanently',rarity:'uncommon',
+   effect:p=>{p.def+=4;},effectDesc:'+4 DEF',consumable:true},
+  // Rare drops (medium+ enemies)
+  {id:'tome_knowledge',name:'Tome of Knowledge',icon:'📚',desc:'+5 ATK & +10 max HP',rarity:'rare',
+   effect:p=>{p.atk+=5;p.maxHp+=10;p.hp=Math.min(p.maxHp,p.hp+10);},effectDesc:'+5 ATK +10 MaxHP',consumable:true},
+  {id:'crystal_lens',name:'Crystal Lens',icon:'🔮',desc:'+8% crit chance permanently',rarity:'rare',
+   effect:p=>{p.crit=Math.min(0.9,p.crit+0.08);},effectDesc:'+8% Crit',consumable:true},
+  {id:'potion_full',name:'Full Elixir',icon:'🧪',desc:'Restore full HP',rarity:'rare',
+   effect:p=>{p.hp=p.maxHp;},effectDesc:'Full Heal',consumable:true},
+  // Epic drops (unique/boss enemies)
+  {id:'crown_wisdom',name:'Crown of Wisdom',icon:'👑',desc:'+10 ATK +10 DEF +10% dodge',rarity:'epic',
+   effect:p=>{p.atk+=10;p.def+=10;p.dodge=Math.min(0.8,p.dodge+0.10);},effectDesc:'+10ATK +10DEF +10%Dodge',consumable:true},
+  {id:'phoenix_feather',name:'Phoenix Feather',icon:'🪶',desc:'+20 max HP & restore full HP',rarity:'epic',
+   effect:p=>{p.maxHp+=20;p.hp=p.maxHp;},effectDesc:'+20 MaxHP + Full Heal',consumable:true},
+  {id:'ring_quickspeech',name:'Ring of Quick Speech',icon:'💍',desc:'+15% dodge & +5 ATK',rarity:'epic',
+   effect:p=>{p.dodge=Math.min(0.8,p.dodge+0.15);p.atk+=5;},effectDesc:'+15%Dodge +5ATK',consumable:true},
+];
+
+const ITEM_RARITY_COLOR={common:'#aaa',uncommon:'#4caf50',rare:'#4fc3f7',epic:'#ce93d8'};
+
+// Drop table: {itemId, chance}
+const DROP_TABLES={
+  easy:[
+    {id:'scroll_minor',chance:0.25},{id:'herb',chance:0.15},{id:'lucky_charm',chance:0.06},
+  ],
+  medium:[
+    {id:'herb',chance:0.20},{id:'focus_stone',chance:0.10},{id:'iron_veil',chance:0.10},
+    {id:'crystal_lens',chance:0.05},{id:'tome_knowledge',chance:0.05},
+  ],
+  hard:[
+    {id:'focus_stone',chance:0.15},{id:'tome_knowledge',chance:0.12},{id:'crystal_lens',chance:0.10},
+    {id:'potion_full',chance:0.08},
+  ],
+  unique:[
+    {id:'crown_wisdom',chance:0.30},{id:'ring_quickspeech',chance:0.30},{id:'potion_full',chance:0.40},
+  ],
+  boss:[
+    {id:'phoenix_feather',chance:0.60},{id:'crown_wisdom',chance:0.40},
+  ],
+};
+
+function rollDrops(dropKey){
+  const table=DROP_TABLES[dropKey]||[];
+  const drops=[];
+  table.forEach(entry=>{
+    if(Math.random()<entry.chance) drops.push(entry.id);
+  });
+  return drops;
+}
+
+// ================================================================
+// XP / LEVEL SYSTEM
+// ================================================================
+const XP_TABLE=[0,100,220,380,580,830,1140,1520,1980,2530,3180]; // xp needed to reach each level
+const MAX_LEVEL=10;
+
+function xpForLevel(lv){return XP_TABLE[Math.min(lv,MAX_LEVEL-1)]||99999;}
+function xpReward(etype,isBoss,isUnique){
+  if(isBoss) return 80+G.biomeIdx*30;
+  if(isUnique) return 50+G.biomeIdx*15;
+  const base={easy:12,medium:22,hard:35};
+  return (base[etype.type]||12)+G.biomeIdx*5;
+}
+
+// Pending level-up allocation
+let luPending={pts:0,kn:0,ph:0,qs:0};
+
+function gainXP(amount){
+  if(!G.player) return;
+  G.player.xp=(G.player.xp||0)+amount;
+  const lv=G.player.level||1;
+  if(lv<MAX_LEVEL && G.player.xp>=xpForLevel(lv)){
+    G.player.xp-=xpForLevel(lv);
+    G.player.level=(lv+1);
+    G.player.statPoints=(G.player.statPoints||0)+3;
+    // Queue levelup screen
+    G.pendingLevelUp=true;
+  }
+  updateHUD();
+}
+
+function showLevelUp(){
+  G.pendingLevelUp=false;
+  const p=G.player;
+  luPending={pts:p.statPoints||0,kn:0,ph:0,qs:0};
+  document.getElementById('lu-level').textContent=`Reached Level ${p.level}!`;
+  document.getElementById('lu-points').textContent=`${luPending.pts} stat point${luPending.pts!==1?'s':''} to distribute`;
+  luRender();
+  show('levelup');
+}
+
+function luAllocate(stat,delta){
+  const used=luPending.kn+luPending.ph+luPending.qs;
+  const total=luPending.pts;
+  if(delta>0 && used>=total) return;
+  if(delta<0 && luPending[stat]<=0) return;
+  luPending[stat]+=delta;
+  luRender();
+}
+
+function luRender(){
+  ['kn','ph','qs'].forEach(k=>{
+    document.getElementById(`lu-${k}-val`).textContent=luPending[k];
+  });
+  const p=G.player;
+  const remaining=luPending.pts-(luPending.kn+luPending.ph+luPending.qs);
+  document.getElementById('lu-points').textContent=`${remaining} point${remaining!==1?'s':''} remaining`;
+  document.getElementById('lu-confirm').disabled=remaining>0;
+  document.getElementById('lu-confirm').style.opacity=remaining>0?'0.4':'1';
+  // Preview
+  const newAtk=p.atk+luPending.kn*3;
+  const newDef=p.def+luPending.ph*3;
+  const newDodge=Math.min(0.8,(p.dodge||0)+luPending.qs*0.04);
+  document.getElementById('lu-stat-preview').innerHTML=
+    `📖 Knowledge: <b style="color:#ff9800">${p.stats?.kn||0}</b> → <b style="color:#ffd700">${(p.stats?.kn||0)+luPending.kn}</b>  ATK: ${p.atk} → <b style="color:#ffd700">${newAtk}</b><br>`+
+    `🏛️ Philosophy: <b style="color:#4fc3f7">${p.stats?.ph||0}</b> → <b style="color:#ffd700">${(p.stats?.ph||0)+luPending.ph}</b>  DEF: ${p.def} → <b style="color:#ffd700">${newDef}</b><br>`+
+    `💬 Quick Speak: <b style="color:#ce93d8">${p.stats?.qs||0}</b> → <b style="color:#ffd700">${(p.stats?.qs||0)+luPending.qs}</b>  Dodge: ${Math.round((p.dodge||0)*100)}% → <b style="color:#ffd700">${Math.round(newDodge*100)}%</b>`;
+}
+
+function luConfirm(){
+  const p=G.player;
+  p.atk+=luPending.kn*3;
+  p.def+=luPending.ph*3;
+  p.dodge=Math.min(0.8,(p.dodge||0)+luPending.qs*0.04);
+  if(!p.stats) p.stats={kn:0,ph:0,qs:0};
+  p.stats.kn+=luPending.kn;
+  p.stats.ph+=luPending.ph;
+  p.stats.qs+=luPending.qs;
+  p.statPoints=0;
+  show('explore');
+  startLoop();
+}
+
+// ================================================================
+// INVENTORY
+// ================================================================
+function showInventory(){
+  stopLoop();
+  const p=G.player;
+  document.getElementById('inv-stats').innerHTML=
+    `Lv.<b style="color:#ce93d8">${p.level}</b>  XP: <b style="color:#4fc3f7">${p.xp}/${xpForLevel(p.level)}</b>  SP: <b style="color:#ffd700">${p.statPoints||0}</b><br>`+
+    `📖 Knowledge: <b style="color:#ff9800">${p.stats?.kn||0}</b> (+${(p.stats?.kn||0)*3} ATK bonus)<br>`+
+    `🏛️ Philosophy: <b style="color:#4fc3f7">${p.stats?.ph||0}</b> (+${(p.stats?.ph||0)*3} DEF bonus)<br>`+
+    `💬 Quick Speak: <b style="color:#ce93d8">${p.stats?.qs||0}</b> (+${Math.round((p.stats?.qs||0)*4)}% Dodge bonus)<br>`+
+    `ATK: <b style="color:#ff9800">${p.atk}</b> | DEF: <b style="color:#4fc3f7">${p.def}</b> | Dodge: <b style="color:#ce93d8">${Math.round((p.dodge||0)*100)}%</b>`;
+  const inv=document.getElementById('inv-items');
+  inv.innerHTML='';
+  const items=p.inventory||[];
+  if(!items.length){
+    inv.innerHTML='<div style="font-family:monospace;font-size:11px;color:#444;text-align:center;padding:12px;">No items yet. Defeat enemies to find loot!</div>';
+  } else {
+    items.forEach((itemId,idx)=>{
+      const item=ITEMS.find(i=>i.id===itemId);
+      if(!item) return;
+      const row=document.createElement('div');row.className='item-row';
+      row.innerHTML=`<div class="item-icon">${item.icon}</div>
+        <div class="item-info">
+          <div class="item-name" style="color:${ITEM_RARITY_COLOR[item.rarity]}">${item.name}</div>
+          <div class="item-desc">${item.desc}</div>
+        </div>
+        <button class="item-use" onclick="useItem(${idx})"${!item.consumable?'disabled':''}>USE</button>`;
+      inv.appendChild(row);
+    });
+  }
+  show('inventory');
+}
+
+function useItem(idx){
+  const p=G.player;
+  const items=p.inventory||[];
+  const itemId=items[idx];
+  const item=ITEMS.find(i=>i.id===itemId);
+  if(!item||!item.consumable) return;
+  item.effect(p);
+  items.splice(idx,1);
+  showItemDrop(`Used ${item.icon} ${item.name}: ${item.effectDesc}`,2000);
+  showInventory(); // refresh
+}
+
+function showItemDrop(msg,dur=3000){
+  const el=document.getElementById('itemdrop');
+  el.textContent=msg;
+  el.style.display='block';
+  el.style.animation='none';void el.offsetWidth;
+  el.style.animation='popIn .4s ease';
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>{el.style.display='none';},dur);
+}
+
+document.getElementById('inv-close').onclick=()=>{
+  if(G.screen==='inventory'){show('explore');startLoop();}
+};
 const WW=1280,WH=720,TILE=32;
 const COLS=Math.ceil(WW/TILE)+2, ROWS=Math.ceil(WH/TILE)+2;
 let terrainMap=[]; // 0=base tile, 1=town tile, 2=deco/obstacle
@@ -1222,11 +1480,14 @@ const G={
   aggroPhase:null,
   aggroTimer:0,
   frozen:false,
-  // Boss unlock — tracks if unique guardian was killed this biome
+  // Boss unlock
   uniqueKilled:false,
-  bossLockFlash:0,    // frames to show "boss locked" warning
-  bossUnlockFlash:0,  // frames to show "boss unlocked!" banner
-  eUnique:false,      // whether current combat enemy is the unique guardian
+  bossLockFlash:0,
+  bossUnlockFlash:0,
+  eUnique:false,
+  // Level-up
+  pendingLevelUp:false,
+  pendingDrops:[],   // items queued to give after combat ends
 };
 const SPD=2.8;
 const AGGRO_DETECT = 120;   // px – enemy notices player
@@ -1302,10 +1563,16 @@ function buildChars(){
 // ================================================================
 function startGame(id){
   const c=CHARS[id];
-  G.player={...c,maxHp:c.hp};
+  G.player={
+    ...c, maxHp:c.hp,
+    level:1, xp:0, statPoints:0,
+    stats:{kn:0,ph:0,qs:0},
+    inventory:[],
+  };
   G.defeated=new Set();G.usedQ=new Set();
   G.biomeIdx=0;
   initWorld();show('explore');layoutUI();showIntro();
+  document.getElementById('inventory-btn').style.display='block';
 }
 
 function initWorld(){
@@ -1330,11 +1597,16 @@ function initWorld(){
     }
   });
 
-  // Spawn unique guardian — fixed dramatic position
+  // Spawn unique guardian — placed in the LEFT half, far from boss (which is right side)
   const ug=b.enemies.find(e=>e.unique);
   if(ug){
-    const ux=WW*0.65+Math.random()*100-50;
-    const uy=WH*0.2+Math.random()*80-40;
+    // Boss is at WW-120 (right). Guardian spawns in left quadrant, far from town
+    let ux, uy, tries=0;
+    do {
+      ux = 80 + Math.random()*(WW*0.4-80);   // left 40% of map
+      uy = 60 + Math.random()*(WH-120);
+      tries++;
+    } while((dst(ux,uy,400,300)<170||isSolid(ux,uy))&&tries<80);
     const uhp=ug.baseHp+G.biomeIdx*12;
     G.enemies.push({id:id++,x:ux,y:uy,dx:0,dy:0,hp:uhp,maxHp:uhp,dead:false,boss:false,unique:true,etype:ug});
   }
@@ -1684,14 +1956,20 @@ function drawWorld(){
 function updateHUD(){
   if(!G.player)return;
   const b=BIOMES[G.biomeIdx];
-  document.getElementById('hud-name').textContent=`${G.player.name}`;
-  const p=Math.max(0,G.player.hp/G.player.maxHp*100);
+  const p=G.player;
+  document.getElementById('hud-name').textContent=p.name;
+  const hp=Math.max(0,p.hp/p.maxHp*100);
   const hb=document.getElementById('hud-hp');
-  hb.style.width=p+'%';hb.style.background=p>50?'#4caf50':p>25?'#ff9800':'#f44336';
+  hb.style.width=hp+'%';hb.style.background=hp>50?'#4caf50':hp>25?'#ff9800':'#f44336';
+  document.getElementById('hud-level').textContent=`Lv.${p.level||1}`;
   document.getElementById('hud-biome').textContent=`${b.emoji} ${b.name}`;
   const bossReady=G.uniqueKilled;
   document.getElementById('hud-bosses').textContent=`👑 ${G.defeated.size}/4 ${bossReady?'🔓':'🔒'}`;
   document.getElementById('hud-heal').style.display=G.inTown?'block':'none';
+  // XP bar
+  const lv=p.level||1;
+  const xpPct=lv>=MAX_LEVEL?100:((p.xp||0)/xpForLevel(lv)*100);
+  document.getElementById('xpbar').style.width=Math.min(100,xpPct)+'%';
 }
 
 // ================================================================
@@ -1828,7 +2106,12 @@ document.getElementById('intro-go').onclick=()=>{document.getElementById('intro-
 // ================================================================
 window.addEventListener('keydown',e=>{
   G.keys.add(e.key.toLowerCase());
-  if(e.key==='Escape'){if(G.screen==='explore')doPause();else if(G.screen==='paused')doResume();}
+  if(e.key==='Escape'){
+    if(G.screen==='explore')doPause();
+    else if(G.screen==='paused')doResume();
+    else if(G.screen==='inventory'){show('explore');startLoop();}
+  }
+  if((e.key==='i'||e.key==='I')&&G.screen==='explore'){showInventory();}
 });
 window.addEventListener('keyup',e=>G.keys.delete(e.key.toLowerCase()));
 
@@ -1984,13 +2267,14 @@ function resolve2(idx){
   res.textContent=correct?'✅ CORRECT!':'❌ WRONG!';
 
   const etype=G.cEnemyType;
+  const p=G.player;
   if(correct){
     if(G.cAction==='attack'){
-      const dmg=Math.floor(G.player.atk*(0.85+Math.random()*.3));
+      const dmg=Math.floor(p.atk*(0.85+Math.random()*.3));
       G.eHp=Math.max(0,G.eHp-dmg);
       addLog(`✅ Correct! ${dmg} damage!`,'#90ee90');shakeCanvas('c-enemy-canvas');
     }else if(G.cAction==='heavy'){
-      const dmg=Math.floor(G.player.atk*2*(0.85+Math.random()*.3));
+      const dmg=Math.floor(p.atk*2*(0.85+Math.random()*.3));
       G.eHp=Math.max(0,G.eHp-dmg);
       addLog(`💥 Critical! ${dmg} damage!`,'#ffd700');shakeCanvas('c-enemy-canvas');
     }else if(G.cAction==='block'){
@@ -1999,9 +2283,11 @@ function resolve2(idx){
       addLog('💨 Ready to dodge!','#ce93d8');
     }
   }else{
-    const pen=Math.floor(etype.baseAtk*(G.cAction==='heavy'?1.2:.6));
-    G.player.hp=Math.max(0,G.player.hp-pen);
-    addLog(`❌ Wrong! ${pen} damage taken!`,'#f44336');shakeCanvas('c-player-canvas');
+    const defReduction=Math.max(0.1, 1-(p.def*0.012)); // each DEF point reduces dmg by 1.2%, min 10%
+    const pen=Math.floor(etype.baseAtk*(G.cAction==='heavy'?1.2:.6)*defReduction);
+    p.hp=Math.max(0,p.hp-pen);
+    addLog(`❌ Wrong! ${pen} dmg taken! (DEF -${Math.round((1-defReduction)*100)}%)`, '#f44336');
+    shakeCanvas('c-player-canvas');
   }
 
   refreshBars();
@@ -2012,30 +2298,32 @@ function resolve2(idx){
 
 function enemyTurn(){
   const etype=G.cEnemyType;
+  const p=G.player;
   const acts=['attack','attack','attack','heavy','block','dodge'];
   const act=acts[Math.floor(Math.random()*acts.length)];
   const hit=Math.random()<etype.sc;
   const blocked=G.cAction==='block'&&G.cCorrect;
-  const dodged=G.cAction==='dodge'&&G.cCorrect;
+  const dodged=(G.cAction==='dodge'&&G.cCorrect)||Math.random()<(p.dodge||0);
+  const defReduction=Math.max(0.1, 1-(p.def*0.012));
   if(act==='attack'){
-    if(dodged)addLog('💨 You dodged the attack!','#ce93d8');
+    if(dodged)addLog(`💨 Dodged! (${Math.round((p.dodge||0)*100)}% chance)`,'#ce93d8');
     else if(hit){
-      const dmg=Math.floor(etype.baseAtk*(blocked?.4:1)*(0.8+Math.random()*.4));
-      G.player.hp=Math.max(0,G.player.hp-dmg);
-      addLog(`👊 ${etype.name} attacks for ${dmg}${blocked?' (blocked!)':''}!`,blocked?'#4fc3f7':'#f44336');
+      const dmg=Math.floor(etype.baseAtk*(blocked?.4:1)*(0.8+Math.random()*.4)*defReduction);
+      p.hp=Math.max(0,p.hp-dmg);
+      addLog(`👊 ${etype.name} hits ${dmg}${blocked?' (blocked)':''}!`,blocked?'#4fc3f7':'#f44336');
       shakeCanvas('c-player-canvas');
     }else addLog(`${etype.name} misses!`,'#555');
   }else if(act==='heavy'&&hit){
     if(dodged)addLog('💨 Dodged heavy attack!','#ce93d8');
     else{
-      const dmg=Math.floor(etype.baseAtk*1.8*(0.8+Math.random()*.4));
-      G.player.hp=Math.max(0,G.player.hp-dmg);
+      const dmg=Math.floor(etype.baseAtk*1.8*(0.8+Math.random()*.4)*defReduction);
+      p.hp=Math.max(0,p.hp-dmg);
       addLog(`💢 Heavy hit! ${dmg} damage!`,'#f44336');shakeCanvas('c-player-canvas');
     }
   }else if(act==='block')addLog(`🛡️ ${etype.name} guards!`,'#777');
   else addLog(`${etype.name} fumbles!`,'#555');
   refreshBars();
-  if(G.player.hp<=0){addLog('💀 You have fallen...','#f44336');setTimeout(()=>show('gameover'),1800);return;}
+  if(p.hp<=0){addLog('💀 You have fallen...','#f44336');setTimeout(()=>show('gameover'),1800);return;}
   setTimeout(()=>{document.getElementById('q-panel').style.display='none';setActions(true);G.cAnswered=false;},700);
 }
 
@@ -2043,30 +2331,65 @@ function endCombat(won){
   const e=G.enemies.find(e=>e.id===G.eid);
   if(e) e.dead=true;
 
+  if(won){
+    // XP reward
+    const xp=xpReward(G.cEnemyType, G.eBoss, G.eUnique);
+    gainXP(xp);
+    addLog(`+${xp} XP`,'#9c27b0');
+
+    // Item drops
+    const dropKey=G.eBoss?'boss':G.eUnique?'unique':(G.cEnemyType.type||'easy');
+    const drops=rollDrops(dropKey);
+    drops.forEach(itemId=>{
+      const item=ITEMS.find(i=>i.id===itemId);
+      if(!item) return;
+      if(!G.player.inventory) G.player.inventory=[];
+      G.player.inventory.push(itemId);
+      G.pendingDrops.push(item);
+    });
+  }
+
   // If the unique guardian was just killed → unlock the boss
   if(won && G.eUnique){
     G.uniqueKilled=true;
     const boss=G.enemies.find(e=>e.boss&&!e.dead);
     if(boss){
       boss.locked=false;
-      // Boss starts wandering now
       boss.dx=(Math.random()-.5)*1.2;
       boss.dy=(Math.random()-.5)*1.2;
     }
-    // Show unlock notification then resume
     show('explore');
-    G.bossUnlockFlash=180; // frames to show "BOSS UNLOCKED" banner
-    startLoop();
+    G.bossUnlockFlash=180;
+    // Show drops then maybe level up
+    _showPendingDrops(()=>{
+      if(G.pendingLevelUp) showLevelUp();
+      else startLoop();
+    });
     return;
   }
 
   if(won && G.eBoss){
     G.defeated.add(G.biomeIdx);
-    if(G.defeated.size>=4){show('victory');initVictory();return;}
-    G.biomeIdx++;initWorld();show('explore');layoutUI();showIntro();
+    _showPendingDrops(()=>{
+      if(G.pendingLevelUp){showLevelUp();return;}
+      if(G.defeated.size>=4){show('victory');initVictory();}
+      else{G.biomeIdx++;initWorld();show('explore');layoutUI();showIntro();}
+    });
   } else {
-    show('explore');startLoop();
+    show('explore');
+    _showPendingDrops(()=>{
+      if(G.pendingLevelUp) showLevelUp();
+      else startLoop();
+    });
   }
+}
+
+function _showPendingDrops(cb){
+  if(!G.pendingDrops||!G.pendingDrops.length){cb();return;}
+  const drops=[...G.pendingDrops]; G.pendingDrops=[];
+  let msg=drops.map(i=>`${i.icon} ${i.name}`).join('  ');
+  showItemDrop('🎁 LOOT: '+msg, 2500);
+  setTimeout(cb, 2600);
 }
 
 // ================================================================
