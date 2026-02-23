@@ -104,6 +104,29 @@ body{display:flex;align-items:center;justify-content:center;}
 #xpbar-wrap{position:absolute;top:36px;left:0;right:0;height:6px;background:rgba(0,0,0,.6);z-index:11;}
 #xpbar{height:100%;background:linear-gradient(90deg,#4fc3f7,#9c27b0);transition:width .4s;}
 #hud-level{font-family:'Press Start 2P',monospace;font-size:7px;color:#ce93d8;white-space:nowrap;}
+/* Puzzle + POI styles */
+#puzzle-overlay{position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:300;display:none;align-items:center;justify-content:center;}
+.puz-box{background:#0d1117;border:3px solid #ffd700;padding:22px 26px;max-width:460px;width:93%;text-align:center;box-shadow:0 0 40px rgba(255,215,0,.3);animation:fadeIn .3s ease;}
+.puz-title{font-family:'Press Start 2P',monospace;font-size:12px;color:#ffd700;margin-bottom:6px;text-shadow:2px 2px 0 #7a5e00;}
+.puz-subtitle{font-family:'Press Start 2P',monospace;font-size:7px;color:#888;margin-bottom:16px;}
+.puz-timer-bar{background:#111;border:2px solid #333;height:10px;margin-bottom:12px;}
+.puz-timer-fill{height:100%;background:#4caf50;transition:width .15s linear,background .3s;}
+.puz-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.puz-cell{aspect-ratio:1;border:3px solid #333;cursor:pointer;transition:all .1s;font-size:22px;display:flex;align-items:center;justify-content:center;}
+.puz-cell:hover{border-color:#ffd700;transform:scale(1.05);}
+.puz-cell.lit{background:#ffd700 !important;border-color:#ffd700 !important;}
+.puz-cell.correct{background:#1b5e20 !important;border-color:#4caf50 !important;}
+.puz-cell.wrong{background:#7f0000 !important;border-color:#f44336 !important;}
+.puz-choices{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px;}
+.puz-choice{background:#1a1a2e;border:2px solid #444;color:#ddd;font-family:monospace;font-size:11px;padding:9px 8px;cursor:pointer;text-align:left;line-height:1.4;transition:background .1s;}
+.puz-choice:hover:not([disabled]){background:#2a2a4e;}
+.puz-choice.correct{background:#1b5e20!important;border-color:#4caf50!important;color:#fff!important;}
+.puz-choice.wrong{background:#7f0000!important;border-color:#f44336!important;color:#fff!important;}
+.puz-mathq{font-size:26px;color:#fff;margin:10px 0 14px;font-family:'Press Start 2P',monospace;}
+.puz-result{font-family:'Press Start 2P',monospace;font-size:10px;margin-top:8px;min-height:18px;}
+#enter-prompt{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);border:2px solid #ffd700;padding:7px 16px;font-family:'Press Start 2P',monospace;font-size:8px;color:#ffd700;z-index:50;pointer-events:none;display:none;white-space:nowrap;animation:fadeIn .2s ease;}
+#fountain-msg{position:absolute;bottom:110px;left:50%;transform:translateX(-50%);background:rgba(0,40,60,.9);border:2px solid #44eecc;padding:7px 16px;font-family:'Press Start 2P',monospace;font-size:8px;color:#44eecc;z-index:50;pointer-events:none;display:none;animation:fadeIn .2s ease;}
+#sentinels-hud{font-family:'Press Start 2P',monospace;font-size:8px;color:#ff9800;white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -136,6 +159,7 @@ body{display:flex;align-items:center;justify-content:center;}
       <div id="hud-level">Lv.1</div>
       <div id="hud-biome">🌲 Forest</div>
       <div id="hud-bosses">👑 0/4</div>
+      <div id="hud-sentinels">⚔️ 0/2</div>
       <div id="hud-heal">💚 HEALING</div>
       <button class="pbtn pbtn-sm" id="hud-pause-btn" style="color:#aaa;border-color:#555">⏸</button>
     </div>
@@ -259,6 +283,69 @@ body{display:flex;align-items:center;justify-content:center;}
       <div id="inv-stats" style="font-size:8px;color:#777;margin-bottom:12px;font-family:monospace;line-height:1.8;"></div>
       <div id="inv-items" style="display:grid;gap:8px;margin-bottom:14px;"></div>
       <button class="pbtn pbtn-sm" id="inv-close" style="color:#aaa;border-color:#555;width:100%">← Close</button>
+    </div>
+  </div>
+
+    <div id="enter-prompt" onclick="if(G.nearPuzzle)openPuzzle()" style="cursor:pointer;">🔓 [E] / TAP — ENTER</div>
+    <div id="fountain-msg">💧 RESTORED!</div>
+
+  <!-- BOSS LOCKED DIALOGUE -->
+  <div id="boss-locked-dialogue" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center;">
+    <div style="background:#0d0d1a;border:3px solid #aa8800;padding:28px 32px;max-width:420px;width:90%;text-align:center;box-shadow:0 0 40px rgba(180,140,0,.5);animation:fadeIn .3s ease;">
+      <div style="font-size:40px;margin-bottom:12px">🔒</div>
+      <div id="bld-title" style="font-family:'Press Start 2P',monospace;font-size:12px;color:#ffd700;margin-bottom:10px;text-shadow:2px 2px 0 #7a5e00;line-height:1.6"></div>
+      <div id="bld-body" style="font-family:'Press Start 2P',monospace;font-size:8px;color:#bbb;margin-bottom:16px;line-height:1.8"></div>
+      <div id="bld-hint" style="font-family:'Press Start 2P',monospace;font-size:7px;color:#ffd700;margin-bottom:20px;line-height:1.8;border:1px solid #554400;padding:8px;background:rgba(255,215,0,.06)"></div>
+      <button class="pbtn pbtn-sm" onclick="closeBossLockedDialogue()" style="color:#aa8800;border-color:#aa8800;width:100%">← Turn Back</button>
+    </div>
+  </div>
+
+  <!-- GATEKEEPER DIALOGUE -->
+  <div id="gatekeeper-dialogue" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center;">
+    <div style="background:#0d0d1a;border:3px solid #ff9800;padding:28px 32px;max-width:420px;width:90%;text-align:center;box-shadow:0 0 40px rgba(255,152,0,.4);animation:fadeIn .3s ease;">
+      <div style="font-size:40px;margin-bottom:12px">⚔️</div>
+      <div id="gkd-title" style="font-family:'Press Start 2P',monospace;font-size:11px;color:#ff9800;margin-bottom:10px;line-height:1.6"></div>
+      <div id="gkd-body" style="font-family:'Press Start 2P',monospace;font-size:8px;color:#bbb;margin-bottom:16px;line-height:1.8"></div>
+      <div id="gkd-hint" style="font-family:'Press Start 2P',monospace;font-size:7px;color:#ff9800;margin-bottom:20px;line-height:1.8;border:1px solid #6a3a00;padding:8px;background:rgba(255,152,0,.06)"></div>
+      <button class="pbtn pbtn-sm" onclick="closeGatekeeperDialogue()" style="color:#ff9800;border-color:#ff9800;width:100%">← Turn Back</button>
+    </div>
+  </div>
+
+  <!-- PUZZLE OVERLAY -->
+  <div id="puzzle-overlay">
+    <div class="puz-box">
+      <div id="puz-poi-icon" style="font-size:36px;margin-bottom:8px"></div>
+      <div class="puz-title" id="puz-title">PUZZLE CHALLENGE</div>
+      <div class="puz-subtitle" id="puz-subtitle">Solve to earn a reward</div>
+      <div class="puz-timer-bar"><div class="puz-timer-fill" id="puz-timer-fill" style="width:100%"></div></div>
+      <!-- Math Blitz -->
+      <div id="puz-math" style="display:none">
+        <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#4fc3f7;margin-bottom:6px" id="puz-math-progress">Q 1/3</div>
+        <div class="puz-mathq" id="puz-math-q">12 + 7 = ?</div>
+        <div id="puz-math-opts" class="puz-choices"></div>
+        <div class="puz-result" id="puz-math-result"></div>
+      </div>
+      <!-- Memory Grid -->
+      <div id="puz-memory" style="display:none">
+        <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ce93d8;margin-bottom:8px" id="puz-mem-msg">WATCH THE PATTERN</div>
+        <div class="puz-grid" id="puz-mem-grid"></div>
+        <div class="puz-result" id="puz-mem-result"></div>
+      </div>
+      <!-- Word Cipher -->
+      <div id="puz-cipher" style="display:none">
+        <div id="puz-cipher-q" style="font-size:12px;color:#fff;margin-bottom:12px;line-height:1.6;min-height:48px"></div>
+        <div id="puz-cipher-opts" class="puz-choices"></div>
+        <div class="puz-result" id="puz-cipher-result"></div>
+      </div>
+      <div id="puz-reward-panel" style="display:none;margin-top:12px;">
+        <div id="puz-reward-text" style="font-family:'Press Start 2P',monospace;font-size:9px;color:#ffd700;margin-bottom:12px;line-height:1.7"></div>
+        <button class="pbtn pbtn-sm" onclick="closePuzzle(true)" style="color:#4caf50;border-color:#4caf50;width:100%">✔ Claim Reward</button>
+      </div>
+      <div id="puz-fail-panel" style="display:none;margin-top:12px;">
+        <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#f44336;margin-bottom:12px">Better luck next time...</div>
+        <button class="pbtn pbtn-sm" onclick="closePuzzle(false)" style="color:#777;border-color:#555;width:100%">← Leave</button>
+      </div>
+      <button id="puz-skip" class="pbtn pbtn-sm" onclick="closePuzzle(false)" style="color:#444;border-color:#333;width:100%;margin-top:8px">✕ Skip</button>
     </div>
   </div>
 
@@ -393,6 +480,12 @@ const C = {
   'v':'#ff8888', 'V':'#ff4466',
   // teal
   'e':'#2aaa88', 'z':'#008866',
+  // Muted ice tile (low-contrast slate blue-grey)
+  '1':'#1e3545', '2':'#243e50',
+  // Muted lava tile (low-contrast dark charcoal-brown)
+  '3':'#1c0f08', '4':'#231408',
+  // Muted lava deco (dark rusty-brown glow, not neon)
+  '5':'#5a2008', '6':'#3a1205',
 };
 
 function px(ctx, sprite, x, y, scale, flipX=false) {
@@ -732,24 +825,24 @@ const SPRITES = {
     'TdTTTdTT',
   ],
   ice_tile:[
-    'jIjIjIjI',
-    'IjIjIjIj',
-    'jIjIjIjI',
-    'IjIjIjIj',
-    'jIjIjIjI',
-    'IjIjIjIj',
-    'jIjIjIjI',
-    'IjIjIjIj',
+    '11111111',
+    '11211121',
+    '12111112',
+    '11111211',
+    '21111111',
+    '11121111',
+    '11111121',
+    '12111111',
   ],
   lava_tile:[
-    'QlQlQlQl',
-    'lQlQlQlQ',
-    'QlQlQlQl',
-    'lQlQlQlQ',
-    'QlQlQlQl',
-    'lQlQlQlQ',
-    'QlQlQlQl',
-    'lQlQlQlQ',
+    '33333333',
+    '33433333',
+    '34333433',
+    '33333333',
+    '33334333',
+    '43333333',
+    '33333343',
+    '33343333',
   ],
   town_tile:[
     'GgGgGgGg',
@@ -828,12 +921,12 @@ const SPRITES = {
     '........',
   ],
   iceberg_deco:[
-    '...jjj..',
-    '..jIIIj.',
-    '.jIIIIIj',
-    '.jIIIIIj',
-    '..jIIIj.',
-    '...jjj..',
+    '...222..',
+    '..21112.',
+    '.2111112',
+    '.2111112',
+    '..21112.',
+    '...222..',
     '........',
     '........',
   ],
@@ -847,6 +940,111 @@ const SPRITES = {
     '........',
     '........',
   ],
+  // ══ NEW TERRAIN TILES ══
+  // Forest extras
+  fallen_log:[
+    '........',
+    '.ooooooo',
+    'oOOOOOOo',
+    'oOoOoOOo',
+    'oOOOOOOo',
+    '.ooooooo',
+    '........',
+    '........',
+  ],
+  mushroom_patch:[
+    '...V.....',
+    '..VVV...',
+    '.VVVVV..',
+    '.VwVwV..',
+    '..ooo...',
+    '.oo.oo..',
+    '...o....',
+    '........',
+  ],
+  forest_pond:[
+    '..jjjj..',
+    '.jJJJJj.',
+    'jJJJJJJj',
+    'jJGJJGJj',
+    'jJJJJJJj',
+    '.jGJJGj.',
+    '..jjjj..',
+    '........',
+  ],
+  // Ice extras
+  frozen_spire:[
+    '...22...',
+    '..2112..',
+    '..2112..',
+    '.211112.',
+    '.211112.',
+    '21111112',
+    '.222222.',
+    '........',
+  ],
+  snowdrift:[
+    '........',
+    '....WW..',
+    '...WWWW.',
+    '..WWWWWW',
+    'WWWWWWWW',
+    '.wwwwwww',
+    '.wWwWwWw',
+    '........',
+  ],
+  ice_crack:[
+    '2.......',
+    '.1......',
+    '..11....',
+    '..211...',
+    '....111.',
+    '.....2..',
+    '......11',
+    '.......2',
+  ],
+  frozen_pond:[
+    '..2222..',
+    '.211112.',
+    '211aa112',
+    '21aaaa12',
+    '211aa112',
+    '.211112.',
+    '..2222..',
+    '........',
+  ],
+  // Volcano extras
+  obsidian_chunk:[
+    '..xxxx..',
+    '.xXXXXx.',
+    'xXXaaXXx',
+    'xXaXXaXx',
+    'xXXaaXXx',
+    '.xXXXXx.',
+    '..xxxx..',
+    '........',
+  ],
+  lava_bubble:[
+    '..6556..',
+    '.5555556',
+    '655655566',
+    '5656655',
+    '5555566.',
+    '.55555..',
+    '..6666..',
+    '........',
+  ],
+  ash_field:[
+    'axaxaxax',
+    'xaxaxaxa',
+    'aaxxaaxx',
+    'xxaaxxaa',
+    'axaxaxax',
+    'xaxaxaxa',
+    '........',
+    '........',
+  ],
+
   // ---- FOREST UNIQUE ----
   // Mushroom Shaman — purple cap, staff, casts spores
   mushroomshaman:[
@@ -1231,7 +1429,11 @@ const CHARS=[
 const BIOMES=[
   {
     id:0,name:"Forest",emoji:"🌲",
-    bg:"#0d2e0d",tile:"grass_tile",townTile:"town_tile",deco:"tree_deco",decoFreq:0.06,
+    bg:"#0d2e0d",tile:"grass_tile",townTile:"town_tile",
+    deco:"tree_deco",   decoFreq:0.05,   // solid trees
+    deco2:"fallen_log", deco2Freq:0.018, // solid fallen logs
+    deco3:"mushroom_patch",deco3Freq:0.04, // non-solid mushrooms
+    deco4:"forest_pond",   deco4Freq:0.012, // non-solid ponds
     wallColor:"#1a5a1a",wallAccent:"#2a7a2a",
     eColor:"#66bb6a",
     enemies:[
@@ -1270,7 +1472,12 @@ const BIOMES=[
   },
   {
     id:2,name:"Ice",emoji:"❄️",
-    bg:"#010f1f",tile:"ice_tile",townTile:"town_tile",deco:"iceberg_deco",decoFreq:0.05,
+    bg:"#091824",tile:"ice_tile",townTile:"town_tile",
+    deco:"iceberg_deco",   decoFreq:0.04,   // solid icebergs
+    deco2:"frozen_spire",  deco2Freq:0.02,  // solid spires
+    deco3:"snowdrift",     deco3Freq:0.055, // non-solid drifts
+    deco4:"ice_crack",     deco4Freq:0.04,  // non-solid cracks
+    deco5:"frozen_pond",   deco5Freq:0.012, // non-solid pools
     wallColor:"#0a3050",wallAccent:"#4099aa",
     eColor:"#80deea",
     enemies:[
@@ -1287,7 +1494,11 @@ const BIOMES=[
   },
   {
     id:3,name:"Volcano",emoji:"🌋",
-    bg:"#1a0000",tile:"lava_tile",townTile:"town_tile",deco:"rock_deco",decoFreq:0.05,
+    bg:"#130a04",tile:"lava_tile",townTile:"town_tile",
+    deco:"rock_deco",      decoFreq:0.04,   // solid rocks
+    deco2:"obsidian_chunk",deco2Freq:0.025, // solid obsidian
+    deco3:"lava_bubble",   deco3Freq:0.04,  // non-solid lava pools
+    deco4:"ash_field",     deco4Freq:0.05,  // non-solid ash
     wallColor:"#3a0a0a",wallAccent:"#cc3300",
     eColor:"#ef5350",
     enemies:[
@@ -1447,8 +1658,11 @@ function luConfirm(){
   p.stats.ph+=luPending.ph;
   p.stats.qs+=luPending.qs;
   p.statPoints=0;
-  show('explore');
-  startLoop();
+  // If a post-level-up callback is queued (e.g. biome advance), run it now
+  const cb = G._postLevelUp;
+  G._postLevelUp = null;
+  if(cb){ cb(); }
+  else { show('explore'); startLoop(); }
 }
 
 // ================================================================
@@ -1581,6 +1795,7 @@ const G={
   // Level-up
   pendingLevelUp:false,
   pendingDrops:[],   // items queued to give after combat ends
+  _postLevelUp:null, // callback to run after level-up screen is confirmed
 };
 const SPD=2.8;
 const AGGRO_DETECT = 120;   // px – enemy notices player
@@ -1699,51 +1914,98 @@ function initWorld(){
   G.px=400;G.py=300;G.enemies=[];
   G.aggroPhase=null;G.aggroEnemy=null;G.aggroTimer=0;G.frozen=false;
   G.uniqueKilled=false;
+  G._bossDialogueShown=false;
+  G._gkDialogueShown=false;
+  G.nearPuzzle=null;
+  G.gatekeepersKilled=0;
+  G.gatekeepersNeeded=2;
+  G.fountains=[];
+  G.puzzlePoints=[];
   buildTerrain(G.biomeIdx);
 
   let id=0;
+
+  // ── Roaming enemies (reduced counts) ──────────────────────────
   b.enemies.forEach((etype)=>{
-    if(etype.unique) return; // spawn unique separately below
-    // Counts: easy=3, medium=4, hard=3
-    const count = etype.type==='easy'?3:etype.type==='medium'?4:3;
+    if(etype.unique) return;
+    const count = etype.type==='easy'?2 : etype.type==='medium'?2 : 1;
     for(let i=0;i<count;i++){
       let x,y,tries=0;
       do{x=80+Math.random()*(WW-160);y=60+Math.random()*(WH-120);tries++;}
       while((dst(x,y,400,300)<170||isSolid(x,y))&&tries<80);
       const hp=etype.baseHp+G.biomeIdx*8;
       const spd=etype.type==='medium'?1.4:etype.type==='hard'?1.6:1.0;
-      G.enemies.push({id:id++,x,y,dx:(Math.random()-.5)*spd,dy:(Math.random()-.5)*spd,hp,maxHp:hp,dead:false,boss:false,unique:false,etype});
+      G.enemies.push({id:id++,x,y,dx:(Math.random()-.5)*spd,dy:(Math.random()-.5)*spd,
+        hp,maxHp:hp,dead:false,boss:false,unique:false,standing:false,gatekeeper:false,etype});
     }
   });
 
-  // Spawn unique guardian — far from town AND far from boss corner
-  const ug=b.enemies.find(e=>e.unique);
-  if(ug){
-    let ux, uy, tries=0;
-    do {
-      ux = 120 + Math.random()*(WW*0.65-120);
-      uy = 80  + Math.random()*(WH-160);
+  // ── Standing Sentinels (must be defeated before unique unlocks) ─
+  const hardEtype=b.enemies.find(e=>e.type==='hard'&&!e.unique)||b.enemies[b.enemies.length-2]||b.enemies[0];
+  for(let i=0;i<G.gatekeepersNeeded;i++){
+    let gx,gy,tries=0;
+    do{
+      gx=180+Math.random()*(WW-360);
+      gy=90+Math.random()*(WH-180);
       tries++;
-    } while(
-      (dst(ux,uy,400,300)<350 ||
-       dst(ux,uy,WW-120,WH/2)<200 ||
-       isSolid(ux,uy)) && tries<120
-    );
-    const uhp=ug.baseHp+G.biomeIdx*12;
-    G.enemies.push({id:id++,x:ux,y:uy,dx:0,dy:0,hp:uhp,maxHp:uhp,dead:false,boss:false,unique:true,etype:ug});
+    }while((dst(gx,gy,400,300)<220||isSolid(gx,gy)||
+            G.enemies.some(e=>dst(e.x,e.y,gx,gy)<100))&&tries<120);
+    const hp=Math.round((hardEtype.baseHp+G.biomeIdx*8)*1.25);
+    G.enemies.push({id:id++,x:gx,y:gy,dx:0,dy:0,
+      hp,maxHp:hp,dead:false,boss:false,unique:false,standing:true,gatekeeper:true,etype:hardEtype});
   }
 
-  // Boss — spawns locked (greyed out) until unique is killed
+  // ── Unique guardian ────────────────────────────────────────────
+  const ug=b.enemies.find(e=>e.unique);
+  if(ug){
+    let ux,uy,tries=0;
+    do{ux=120+Math.random()*(WW*0.65-120);uy=80+Math.random()*(WH-160);tries++;}
+    while((dst(ux,uy,400,300)<350||dst(ux,uy,WW-120,WH/2)<200||isSolid(ux,uy))&&tries<120);
+    const uhp=ug.baseHp+G.biomeIdx*12;
+    G.enemies.push({id:id++,x:ux,y:uy,dx:0,dy:0,hp:uhp,maxHp:uhp,
+      dead:false,boss:false,unique:true,standing:false,gatekeeper:false,etype:ug});
+  }
+
+  // ── Boss ───────────────────────────────────────────────────────
   if(!G.defeated.has(G.biomeIdx)){
     const be=b.boss;
     const baseHp=(b.enemies[0].baseHp+G.biomeIdx*8)*be.bossHpMult;
-    G.enemies.push({
-      id:id++,x:WW-120,y:WH/2,dx:0,dy:0,
+    G.enemies.push({id:id++,x:WW-120,y:WH/2,dx:0,dy:0,
       hp:Math.round(baseHp),maxHp:Math.round(baseHp),
-      dead:false,boss:true,unique:false,
-      locked:true, // locked until unique guardian dies
-      etype:{...b.enemies[0],name:be.name,sprite:be.sprite,baseAtk:b.enemies[0].baseAtk*be.bossAtkMult,sc:be.sc}
-    });
+      dead:false,boss:true,unique:false,standing:false,gatekeeper:false,locked:true,
+      etype:{...b.enemies[0],name:be.name,sprite:be.sprite,
+             baseAtk:b.enemies[0].baseAtk*be.bossAtkMult,sc:be.sc}});
+  }
+
+  // ── Healing Fountains (3 per biome) ───────────────────────────
+  const fcol={0:'#44ffcc',1:'#44aaff',2:'#aaddff',3:'#ff8844'};
+  for(let i=0;i<3;i++){
+    let fx,fy,tries=0;
+    do{fx=110+Math.random()*(WW-220);fy=90+Math.random()*(WH-180);tries++;}
+    while((dst(fx,fy,400,300)<140||isSolid(fx,fy)||
+           G.fountains.some(f=>dst(f.x,f.y,fx,fy)<140))&&tries<120);
+    G.fountains.push({x:fx,y:fy,cooldown:0,color:fcol[G.biomeIdx]||'#44ffcc'});
+  }
+
+  // ── Puzzle POIs (3 per biome) ──────────────────────────────────
+  const poiByBiome=[
+    ['cabin','cave','ancient_oak'],
+    ['oasis','ruin','cave'],
+    ['shrine','cave','cabin'],
+    ['altar','shrine','ruin'],
+  ];
+  const poiIcons={cabin:'🏚️',cave:'🗿',ancient_oak:'🌳',oasis:'🌴',ruin:'🏛️',shrine:'💎',altar:'🔥'};
+  const poiNames={cabin:'Mysterious Cabin',cave:'Dark Cave',ancient_oak:'Ancient Oak',
+                  oasis:'Desert Oasis',ruin:'Ancient Ruin',shrine:'Ice Shrine',altar:'Lava Altar'};
+  const ptypes=poiByBiome[G.biomeIdx]||['cave','cabin','shrine'];
+  for(let i=0;i<3;i++){
+    let px2,py2,tries=0;
+    do{px2=110+Math.random()*(WW-220);py2=90+Math.random()*(WH-180);tries++;}
+    while((dst(px2,py2,400,300)<160||isSolid(px2,py2)||
+           G.puzzlePoints.some(p=>dst(p.x,p.y,px2,py2)<150)||
+           G.fountains.some(f=>dst(f.x,f.y,px2,py2)<100))&&tries<120);
+    G.puzzlePoints.push({x:px2,y:py2,type:ptypes[i],used:false,cooldown:0,
+      icon:poiIcons[ptypes[i]]||'❓',name:poiNames[ptypes[i]]||'Mystery'});
   }
 }
 
@@ -1773,6 +2035,123 @@ function getTileStrip(spriteName,scale){
 }
 
 let playerWalkFrame=0, playerWalkTick=0;
+
+// ── Draw procedural POI structures ────────────────────────────
+function drawPOI(ctx, x, y, type, pulse, nearPlayer){
+  const glow=nearPlayer?`rgba(255,215,0,${0.3+pulse*0.4})`:`rgba(255,215,0,0.12)`;
+  // Outer aura
+  ctx.save();
+  ctx.beginPath();ctx.arc(x,y,30,0,Math.PI*2);
+  ctx.fillStyle=glow;ctx.fill();
+  ctx.restore();
+
+  if(type==='cave'){
+    // Dark rocky arch
+    ctx.save();
+    ctx.fillStyle='#2a1a0a';ctx.beginPath();ctx.arc(x,y,20,Math.PI,0);ctx.fill();
+    ctx.fillStyle='#111';ctx.beginPath();ctx.arc(x,y+2,14,Math.PI*1.1,-0.1);ctx.fill();
+    ctx.fillStyle='#444';ctx.lineWidth=3;ctx.strokeStyle='#555';
+    ctx.strokeRect(x-20,y,5,12);ctx.strokeRect(x+15,y,5,12);
+    ctx.fillStyle='#333';ctx.fillRect(x-20,y,40,3); // lintel
+    ctx.restore();
+    ctx.font="14px serif";ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🗿',x,y-28);
+
+  } else if(type==='cabin'){
+    // Log cabin
+    ctx.save();
+    ctx.fillStyle='#5a3010';ctx.fillRect(x-18,y-10,36,22);
+    ctx.strokeStyle='#3a1a00';ctx.lineWidth=2;ctx.strokeRect(x-18,y-10,36,22);
+    // Roof triangle
+    ctx.fillStyle='#8B4513';ctx.beginPath();
+    ctx.moveTo(x-22,y-10);ctx.lineTo(x,y-28);ctx.lineTo(x+22,y-10);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#5a2a00';ctx.stroke();
+    // Door
+    ctx.fillStyle='#222';ctx.fillRect(x-5,y+2,10,10);
+    // Window
+    ctx.fillStyle='#ffdd88';ctx.fillRect(x-16,y-6,8,7);
+    ctx.strokeStyle='#8B6914';ctx.lineWidth=1;ctx.strokeRect(x-16,y-6,8,7);
+    ctx.restore();
+    ctx.font="14px serif";ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🏚️',x,y-42);
+
+  } else if(type==='oasis'){
+    // Desert oasis: blue pool + palm
+    ctx.save();
+    ctx.fillStyle='#1a4a88';ctx.beginPath();ctx.ellipse(x,y+6,18,10,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#44aaff';ctx.lineWidth=2;ctx.stroke();
+    // Ripple
+    ctx.globalAlpha=0.3+pulse*0.3;ctx.beginPath();ctx.ellipse(x,y+6,12,6,0,0,Math.PI*2);
+    ctx.strokeStyle='#88ddff';ctx.lineWidth=1;ctx.stroke();ctx.globalAlpha=1;
+    // Palm trunk
+    ctx.fillStyle='#8B6914';ctx.fillRect(x-3,y-20,6,24);
+    // Fronds
+    ctx.strokeStyle='#1a8a1a';ctx.lineWidth=3;ctx.setLineDash([]);
+    [[-24,-12],[-16,-22],[-4,-26],[12,-22],[20,-12]].forEach(([dx2,dy2])=>{
+      ctx.beginPath();ctx.moveTo(x,y-18);ctx.lineTo(x+dx2,y+dy2);ctx.stroke();
+    });
+    ctx.restore();
+    ctx.font="14px serif";ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🌴',x,y-46);
+
+  } else if(type==='ancient_oak'){
+    // Giant glowing tree
+    ctx.save();
+    ctx.shadowColor='#44ff88';ctx.shadowBlur=20*pulse;
+    ctx.fillStyle='#1a5a1a';ctx.beginPath();ctx.arc(x,y-8,22,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#2a8a3a';ctx.beginPath();ctx.arc(x-8,y-14,14,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#2a8a3a';ctx.beginPath();ctx.arc(x+8,y-14,14,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#3aaa4a';ctx.beginPath();ctx.arc(x,y-20,14,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+    ctx.fillStyle='#5a3010';ctx.fillRect(x-5,y+10,10,14);
+    ctx.font="13px serif";ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('✨',x,y-38);
+
+  } else if(type==='shrine'){
+    // Ice crystal shrine
+    ctx.save();
+    ctx.strokeStyle=nearPlayer?`rgba(180,240,255,${0.8+pulse*0.2})`:'rgba(100,180,220,0.6)';
+    ctx.lineWidth=2;ctx.setLineDash([]);
+    // Crystal spires
+    [[x-12,y-30],[x,y-38],[x+12,y-30]].forEach(([sx,sy])=>{
+      ctx.fillStyle='rgba(80,200,240,0.7)';
+      ctx.beginPath();ctx.moveTo(sx-5,y+4);ctx.lineTo(sx,sy);ctx.lineTo(sx+5,y+4);ctx.closePath();ctx.fill();
+      ctx.stroke();
+    });
+    ctx.fillStyle='#1a3a5a';ctx.fillRect(x-16,y+4,32,8);
+    ctx.restore();
+    ctx.font="13px serif";ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('💎',x,y-50);
+
+  } else if(type==='altar'){
+    // Lava altar
+    ctx.save();
+    ctx.fillStyle='#3a1a0a';ctx.fillRect(x-16,y-4,32,18);
+    ctx.fillStyle='#5a2a10';ctx.fillRect(x-12,y-10,24,6);
+    ctx.fillStyle='#8a4a20';ctx.fillRect(x-8,y-14,16,4);
+    // Flame
+    ctx.shadowColor='#ff6600';ctx.shadowBlur=16*pulse;
+    ctx.font="18px serif";ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('🔥',x,y-24);
+    ctx.restore();
+    ctx.font="13px serif";ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('⚡',x,y-46);
+
+  } else if(type==='ruin'){
+    // Broken stone arch
+    ctx.save();
+    ctx.fillStyle='#6a6a5a';
+    ctx.fillRect(x-20,y-28,8,32);
+    ctx.fillRect(x+12,y-22,8,26);
+    ctx.fillRect(x-20,y-28,18,7); // broken lintel left
+    ctx.fillStyle='#4a4a3a';ctx.strokeStyle='#888';ctx.lineWidth=1;
+    ctx.strokeRect(x-20,y-28,8,32);ctx.strokeRect(x+12,y-22,8,26);
+    ctx.restore();
+    ctx.font="13px serif";ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🏛️',x,y-44);
+  }
+
+  // Interaction glow when near
+  if(nearPlayer){
+    ctx.save();
+    ctx.strokeStyle=`rgba(255,215,0,${0.5+pulse*0.5})`;ctx.lineWidth=2;ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.arc(x,y,34,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
+  }
+}
 
 function drawWorld(){
   const ex=document.getElementById('explore');
@@ -1861,20 +2240,39 @@ function drawWorld(){
       cx.font="7px 'Press Start 2P'";cx.fillStyle='#ff4444';cx.textAlign='center';cx.textBaseline='alphabetic';
       cx.fillText('⚠ BOSS',e.x-camX,e.y-camY-sh/2-5);
     } else if(e.unique){
-      // Unique guardian: gold shimmer
+      // Unique guardian: gold shimmer — show locked if gatekeepers still alive
+      const gkAlive=G.enemies.filter(en=>en.gatekeeper&&!en.dead).length;
       const shimmer=0.7+Math.sin(Date.now()/300)*0.3;
       cx.save();
-      cx.shadowColor='#ffd700';cx.shadowBlur=Math.round(10*shimmer);
+      if(gkAlive>0){cx.globalAlpha=0.5;cx.filter='grayscale(60%)';}
+      else{cx.shadowColor='#ffd700';cx.shadowBlur=Math.round(10*shimmer);}
       const bob=Math.sin(G.animFrame*1.5+e.id)*1.5;
       px(cx,sp,ex2,ey2+bob,sc);
       cx.restore();
-      // Gold ring
+      // Ring
       cx.save();
-      cx.strokeStyle=`rgba(255,215,0,${0.5+shimmer*0.4})`;cx.lineWidth=2;cx.setLineDash([]);
+      cx.strokeStyle=gkAlive>0?`rgba(180,100,0,0.5)`:`rgba(255,215,0,${0.5+shimmer*0.4})`;
+      cx.lineWidth=2;cx.setLineDash([]);
       cx.beginPath();cx.arc(e.x-camX,e.y-camY,sw/2+8,0,Math.PI*2);cx.stroke();
       cx.restore();
-      cx.font="6px 'Press Start 2P'";cx.fillStyle='#ffd700';cx.textAlign='center';cx.textBaseline='alphabetic';
-      cx.fillText('🔑 GUARDIAN',e.x-camX,e.y-camY-sh/2-5);
+      cx.font="6px 'Press Start 2P'";
+      cx.fillStyle=gkAlive>0?'#cc8800':'#ffd700';cx.textAlign='center';cx.textBaseline='alphabetic';
+      cx.fillText(gkAlive>0?`⚔️ SEALED (${gkAlive} left)`:'🔑 GUARDIAN',e.x-camX,e.y-camY-sh/2-5);
+    } else if(e.gatekeeper){
+      // Standing sentinel: orange glow, crossed swords icon
+      const pulse=0.7+Math.sin(Date.now()/400)*0.3;
+      cx.save();
+      cx.shadowColor='#ff9800';cx.shadowBlur=Math.round(12*pulse);
+      px(cx,sp,ex2,ey2,sc); // no bob — standing still
+      cx.restore();
+      cx.save();
+      cx.strokeStyle=`rgba(255,152,0,${0.4+pulse*0.5})`;cx.lineWidth=2;cx.setLineDash([3,3]);
+      cx.beginPath();cx.arc(e.x-camX,e.y-camY,sw/2+8,0,Math.PI*2);cx.stroke();
+      cx.restore();
+      cx.font="11px serif";cx.textAlign='center';cx.textBaseline='middle';
+      cx.fillText('⚔️',e.x-camX,e.y-camY-sh/2-14);
+      cx.font="6px 'Press Start 2P'";cx.fillStyle='#ff9800';cx.textBaseline='alphabetic';
+      cx.fillText('SENTINEL',e.x-camX,e.y-camY-sh/2-24);
     } else {
       // Normal enemy
       const bob=Math.sin(G.animFrame*1.5+e.id)*1.5;
@@ -1917,6 +2315,70 @@ function drawWorld(){
     cx.fillRect(0,0,W,H);
     G.combatFlash--;
   }
+
+  // ── Healing Fountains ─────────────────────────────────────────
+  const now2=Date.now();
+  (G.fountains||[]).forEach(f=>{
+    const fx=f.x-camX, fy=f.y-camY;
+    const pulse=0.6+Math.sin(now2/500)*0.4;
+    const onCooldown=f.cooldown>0;
+    // Outer glow ring
+    cx.save();
+    cx.globalAlpha=onCooldown?0.15:pulse*0.5;
+    cx.beginPath();cx.arc(fx,fy,28,0,Math.PI*2);
+    cx.fillStyle=f.color;cx.fill();
+    cx.restore();
+    // Basin
+    cx.save();
+    cx.fillStyle=onCooldown?'#333':'#1a3a4a';
+    cx.beginPath();cx.arc(fx,fy,18,0,Math.PI*2);cx.fill();
+    cx.strokeStyle=onCooldown?'#555':f.color;cx.lineWidth=2;cx.stroke();
+    cx.restore();
+    // Water surface shimmer
+    if(!onCooldown){
+      cx.save();cx.globalAlpha=pulse;
+      cx.fillStyle=f.color;
+      cx.beginPath();cx.arc(fx,fy,10,0,Math.PI*2);cx.fill();
+      cx.restore();
+    }
+    // Pillar
+    cx.fillStyle=onCooldown?'#444':'#2a5a6a';
+    cx.fillRect(fx-4,fy,8,14);
+    // Label
+    cx.font="11px serif";cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText('💧',fx,fy-26);
+    cx.font="6px 'Press Start 2P'";
+    cx.fillStyle=onCooldown?'#555':f.color;cx.textBaseline='alphabetic';
+    cx.fillText(onCooldown?'COOLING...':'FOUNTAIN',fx,fy-34);
+    // Cooldown arc
+    if(onCooldown){
+      const arc=(1-f.cooldown/1800)*Math.PI*2;
+      cx.save();cx.strokeStyle='#ff9800';cx.lineWidth=3;cx.setLineDash([]);
+      cx.beginPath();cx.arc(fx,fy,22,-Math.PI/2,-Math.PI/2+arc);cx.stroke();cx.restore();
+    }
+  });
+
+  // ── Puzzle POI Entrances ──────────────────────────────────────
+  (G.puzzlePoints||[]).forEach(p=>{
+    const px2=p.x-camX, py2=p.y-camY;
+    const nearPlayer=dst(p.x,p.y,G.px,G.py)<48;
+    const pulse2=0.7+Math.sin(now2/400)*0.3;
+    if(p.used){
+      // Used: greyed out shell
+      cx.save();cx.globalAlpha=0.3;
+      cx.font="28px serif";cx.textAlign='center';cx.textBaseline='middle';
+      cx.fillText(p.icon,px2,py2);cx.restore();
+      cx.font="6px 'Press Start 2P'";cx.fillStyle='#444';cx.textAlign='center';cx.textBaseline='alphabetic';
+      cx.fillText('EXPLORED',px2,py2+24);
+      return;
+    }
+    // Draw biome-appropriate POI shape
+    drawPOI(cx,px2,py2,p.type,pulse2,nearPlayer);
+    // Label
+    cx.font="6px 'Press Start 2P'";
+    cx.fillStyle=nearPlayer?'#ffd700':'#aaa';cx.textAlign='center';cx.textBaseline='alphabetic';
+    cx.fillText(p.name.toUpperCase(),px2,py2+36);
+  });
 
   // ── Aggro visuals ────────────────────────────────────────────
   const now = Date.now();
@@ -2074,9 +2536,19 @@ function drawWorld(){
   mx.fillStyle='#2d6a1e';mx.fillRect(mmx2(400)-4,mmy2(300)-4,8,8);
   G.enemies.forEach(e=>{
     if(e.dead)return;
-    mx.fillStyle=e.boss?(e.locked?'#554400':'#ff4444'):e.unique?'#ffd700':BIOMES[G.biomeIdx].eColor;
+    mx.fillStyle=e.boss?(e.locked?'#554400':'#ff4444'):e.unique?'#ffd700':e.gatekeeper?'#ff9800':BIOMES[G.biomeIdx].eColor;
     const sz=e.boss?5:e.unique?4:3;
     mx.fillRect(mmx2(e.x)-sz/2,mmy2(e.y)-sz/2,sz,sz);
+  });
+  // Fountains on minimap
+  (G.fountains||[]).forEach(f=>{
+    mx.fillStyle=f.cooldown>0?'#336655':'#44ffcc';
+    mx.beginPath();mx.arc(mmx2(f.x),mmy2(f.y),3,0,Math.PI*2);mx.fill();
+  });
+  // Puzzle POIs on minimap
+  (G.puzzlePoints||[]).forEach(p=>{
+    mx.fillStyle=p.used?'#333':'#ffd700';
+    mx.fillRect(mmx2(p.x)-2,mmy2(p.y)-2,4,4);
   });
   mx.fillStyle='#ffd700';mx.fillRect(mmx2(G.px)-3,mmy2(G.py)-3,6,6);
 }
@@ -2093,6 +2565,10 @@ function updateHUD(){
   document.getElementById('hud-biome').textContent=`${b.emoji} ${b.name}`;
   const bossReady=G.uniqueKilled;
   document.getElementById('hud-bosses').textContent=`👑 ${G.defeated.size}/4 ${bossReady?'🔓':'🔒'}`;
+  const gkAlive=G.enemies?G.enemies.filter(e=>e.gatekeeper&&!e.dead).length:G.gatekeepersNeeded;
+  const gkDone=G.gatekeepersNeeded-gkAlive;
+  const gkEl=document.getElementById('hud-sentinels');
+  if(gkEl){gkEl.textContent=`⚔️ ${gkDone}/${G.gatekeepersNeeded}`;gkEl.style.color=gkAlive===0?'#4caf50':'#ff9800';}
   document.getElementById('hud-heal').style.display=G.inTown?'block':'none';
   // XP bar
   const lv=p.level||1;
@@ -2188,8 +2664,13 @@ function tick(){
     if(e.dead)continue;
     // Aggro: skip if player is in town OR a tree blocks line-of-sight
     const d=dst(e.x,e.y,G.px,G.py);
-    const aggroRange = e.boss ? AGGRO_DETECT*1.4 : AGGRO_DETECT;
-    if(d<aggroRange && !G.inTown && G.aggroPhase===null && hasLOS(e.x,e.y,G.px,G.py)){
+    const aggroRange = e.boss ? AGGRO_DETECT*1.4 : e.gatekeeper ? AGGRO_DETECT*0.9 : AGGRO_DETECT;
+    // Block unique aggro if sentinels are still alive
+    if(e.unique && !G.uniqueKilled){
+      const gkAlive=G.enemies.filter(en=>en.gatekeeper&&!en.dead).length;
+      if(gkAlive>0 && d<100 && !G.inTown){showGatekeeperDialogue(gkAlive);return;}
+    }
+    if(d<aggroRange && !G.inTown && G.aggroPhase===null && !(e.boss && e.locked) && hasLOS(e.x,e.y,G.px,G.py)){
       G.aggroEnemy=e;
       G.aggroPhase='warning';
       G.aggroTimer=AGGRO_WARN;
@@ -2197,20 +2678,52 @@ function tick(){
       AudioEngine.sfxEncounter();
       return;
     }
+    // Standing enemies (sentinels) don't roam
+    if(e.standing){continue;}
     // Normal wander — enemies bounce off solid tiles and stay out of town
     const enx=e.x+e.dx, eny=e.y+e.dy;
     if(!isSolid(enx,e.y)&&enx>60&&enx<WW-60) e.x=enx; else e.dx*=-1;
     if(!isSolid(e.x,eny)&&eny>60&&eny<WH-60) e.y=eny; else e.dy*=-1;
     // Keep enemies out of town radius
     if(dst(e.x,e.y,TOWN_X,TOWN_Y)<TOWN_SAFE+20){e.dx*=-1;e.dy*=-1;}
-    // Don't start combat if player is safely inside town
-    if(d<28 && !G.inTown){beginCombat(e);return;}
+    // Don't start combat if player is safely inside town or boss is locked
+    if(d<28 && !G.inTown && !(e.boss && e.locked)){beginCombat(e);return;}
+    // Show locked boss dialogue when player gets close
+    if(e.boss && e.locked && d<80 && !G.inTown){showBossLockedDialogue(e);return;}
   }
+
+  // ── Healing Fountain proximity ─────────────────────────────────
+  G.nearPuzzle=null;
+  let nearAnyFountain=false;
+  (G.fountains||[]).forEach(f=>{
+    if(f.cooldown>0){f.cooldown--;return;}
+    if(dst(f.x,f.y,G.px,G.py)<42 && !G.inTown){
+      const healAmt=Math.round(G.player.maxHp*0.25);
+      if(G.player.hp<G.player.maxHp){
+        G.player.hp=Math.min(G.player.maxHp,G.player.hp+healAmt);
+        f.cooldown=1800;
+        showFountainMsg(`💧 +${healAmt} HP restored!`);
+        nearAnyFountain=true;
+      }
+    }
+  });
+
+  // ── Puzzle POI proximity ───────────────────────────────────────
+  let nearAnyPuzzle=false;
+  (G.puzzlePoints||[]).forEach(p=>{
+    if(p.used)return;
+    if(dst(p.x,p.y,G.px,G.py)<45){
+      G.nearPuzzle=p;
+      nearAnyPuzzle=true;
+    }
+  });
+  const ep=document.getElementById('enter-prompt');
+  if(ep) ep.style.display=nearAnyPuzzle?'block':'none';
 }
 
 function tickIdleEnemies(){
   for(const e of G.enemies){
-    if(e.dead||e===G.aggroEnemy)continue;
+    if(e.dead||e===G.aggroEnemy||e.standing)continue;
     const enx=e.x+e.dx,eny=e.y+e.dy;
     if(!isSolid(enx,e.y)&&enx>60&&enx<WW-60) e.x=enx; else e.dx*=-1;
     if(!isSolid(e.x,eny)&&eny>60&&eny<WH-60) e.y=eny; else e.dy*=-1;
@@ -2226,7 +2739,345 @@ function resetAggro(){
 }
 
 // ================================================================
-// INTRO
+// BOSS LOCKED DIALOGUE
+// ================================================================
+function showBossLockedDialogue(bossEnemy){
+  if(G._bossDialogueShown) return; // already open, don't re-trigger
+  G._bossDialogueShown = true;
+  stopLoop();
+  const b = BIOMES[G.biomeIdx];
+  const ug = b.enemies.find(e => e.unique);
+  const guardianName = ug ? ug.name : 'the Guardian';
+  const bossName = b.boss.name;
+
+  document.getElementById('bld-title').textContent = `${bossName} — SEALED`;
+  document.getElementById('bld-body').textContent =
+    `A powerful seal prevents you from challenging ${bossName}.`;
+  document.getElementById('bld-hint').innerHTML =
+    `🔑 You must defeat the <span style="color:#ffd700">Guardian: ${guardianName}</span><br>` +
+    `before this boss will engage in battle!`;
+  const dlg = document.getElementById('boss-locked-dialogue');
+  dlg.style.display = 'flex';
+}
+
+function closeBossLockedDialogue(){
+  G._bossDialogueShown = false;
+  document.getElementById('boss-locked-dialogue').style.display = 'none';
+  // Push player slightly away from the boss to avoid immediately re-triggering
+  const boss = G.enemies.find(e => e.boss && e.locked && !e.dead);
+  if(boss){
+    const ddx = G.px - boss.x, ddy = G.py - boss.y;
+    const dlen = Math.hypot(ddx, ddy) || 1;
+    G.px = clamp(boss.x + ddx/dlen * 110, 20, WW-20);
+    G.py = clamp(boss.y + ddy/dlen * 110, 20, WH-20);
+  }
+  show('explore');
+  startLoop();
+}
+
+// ================================================================
+// GATEKEEPER DIALOGUE
+// ================================================================
+function showGatekeeperDialogue(gkAlive){
+  if(G._gkDialogueShown)return;
+  G._gkDialogueShown=true;
+  stopLoop();
+  const b=BIOMES[G.biomeIdx];
+  const ug=b.enemies.find(e=>e.unique);
+  const guardianName=ug?ug.name:'the Guardian';
+  document.getElementById('gkd-title').textContent=`${guardianName} — SEALED`;
+  document.getElementById('gkd-body').textContent=
+    `${guardianName} refuses to be challenged while its Sentinels stand guard.`;
+  document.getElementById('gkd-hint').innerHTML=
+    `⚔️ You must defeat <span style="color:#ff9800">${gkAlive} Sentinel${gkAlive>1?'s':''}</span> first!<br>`+
+    `<span style="color:#aaa">Look for the ⚔️ standing enemies on the map.</span>`;
+  document.getElementById('gatekeeper-dialogue').style.display='flex';
+}
+function closeGatekeeperDialogue(){
+  G._gkDialogueShown=false;
+  document.getElementById('gatekeeper-dialogue').style.display='none';
+  // Push player back from unique
+  const ug=G.enemies.find(e=>e.unique&&!e.dead);
+  if(ug){
+    const ddx=G.px-ug.x,ddy=G.py-ug.y;
+    const dlen=Math.hypot(ddx,ddy)||1;
+    G.px=clamp(ug.x+ddx/dlen*120,20,WW-20);
+    G.py=clamp(ug.y+ddy/dlen*120,20,WH-20);
+  }
+  show('explore');startLoop();
+}
+
+// Fountain heal flash message
+function showFountainMsg(msg){
+  const el=document.getElementById('fountain-msg');
+  if(!el)return;
+  el.textContent=msg;el.style.display='block';
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.style.display='none',2000);
+}
+
+// ================================================================
+// PUZZLE POI SYSTEM
+// ================================================================
+const PUZZLE_REWARDS=[
+  {id:'herb',       chance:0.9},
+  {id:'scroll_minor',chance:0.7},
+  {id:'focus_stone',chance:0.35},
+  {id:'iron_veil',  chance:0.3},
+  {id:'lucky_charm',chance:0.25},
+  {id:'tome_knowledge',chance:0.12},
+  {id:'potion_full',chance:0.08},
+];
+
+const CIPHER_QS=[
+  {q:"I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?",o:["Shadow","Echo","Smoke","Mirror"],a:1},
+  {q:"The more you take, the more you leave behind. What am I?",o:["Memories","Footsteps","Water","Time"],a:1},
+  {q:"I have cities, but no houses live there. I have mountains, but no trees grow. I have water, but no fish swim. What am I?",o:["Desert","Map","Sky","Dream"],a:1},
+  {q:"What gets wetter the more it dries?",o:["Rain","A towel","Ice","A sponge"],a:1},
+  {q:"I have hands but cannot clap. What am I?",o:["Statue","Clock","Glove","Robot"],a:1},
+  {q:"What has a head, a tail, but no body?",o:["Snake","Coin","Arrow","River"],a:1},
+  {q:"The more you remove from me, the bigger I become. What am I?",o:["Cloud","Hole","Shadow","Balloon"],a:1},
+  {q:"I travel the world but stay in one corner. What am I?",o:["Compass","Stamp","Star","Moon"],a:1},
+  {q:"What can run but never walks, has a mouth but never talks?",o:["Wind","River","Fire","Time"],a:1},
+  {q:"I have branches but no fruit, trunk, or leaves. What am I?",o:["River","Bank","Road","Bridge"],a:1},
+];
+
+let _puzState={};
+let _puzTimer=null;
+
+function openPuzzle(){
+  if(!G.nearPuzzle||G.nearPuzzle.used)return;
+  stopLoop();
+  document.getElementById('enter-prompt').style.display='none';
+  const p=G.nearPuzzle;
+  const types=['math','memory','cipher'];
+  const ptype=types[Math.floor(Math.random()*types.length)];
+  _puzState={poi:p,type:ptype,score:0,done:false};
+
+  document.getElementById('puz-poi-icon').textContent=p.icon;
+  document.getElementById('puz-reward-panel').style.display='none';
+  document.getElementById('puz-fail-panel').style.display='none';
+  document.getElementById('puz-skip').style.display='block';
+  document.getElementById('puz-math').style.display='none';
+  document.getElementById('puz-memory').style.display='none';
+  document.getElementById('puz-cipher').style.display='none';
+  document.getElementById('puz-timer-fill').style.width='100%';
+  document.getElementById('puz-timer-fill').style.background='#4caf50';
+
+  if(ptype==='math'){
+    document.getElementById('puz-title').textContent=`⚡ MATH BLITZ`;
+    document.getElementById('puz-subtitle').textContent=`${p.name} — Solve 3 quick sums!`;
+    document.getElementById('puz-math').style.display='block';
+    startMathPuzzle();
+  } else if(ptype==='memory'){
+    document.getElementById('puz-title').textContent=`🧠 MEMORY GRID`;
+    document.getElementById('puz-subtitle').textContent=`${p.name} — Remember the pattern!`;
+    document.getElementById('puz-memory').style.display='block';
+    startMemoryPuzzle();
+  } else {
+    document.getElementById('puz-title').textContent=`🔮 WORD CIPHER`;
+    document.getElementById('puz-subtitle').textContent=`${p.name} — Solve the riddle!`;
+    document.getElementById('puz-cipher').style.display='block';
+    startCipherPuzzle();
+  }
+  document.getElementById('puzzle-overlay').style.display='flex';
+}
+
+function closePuzzle(won){
+  stopPuzTimer();
+  document.getElementById('puzzle-overlay').style.display='none';
+  document.getElementById('enter-prompt').style.display='none';
+  if(won && _puzState.poi){
+    _puzState.poi.used=true;
+    // Roll rewards
+    const drops=[];
+    PUZZLE_REWARDS.forEach(r=>{if(Math.random()<r.chance)drops.push(r.id);});
+    const reward=drops[Math.floor(Math.random()*drops.length)]||'herb';
+    const item=ITEMS.find(i=>i.id===reward);
+    if(item){
+      if(!G.player.inventory)G.player.inventory=[];
+      G.player.inventory.push(reward);
+      showItemDrop(`${item.icon} Found: ${item.name}!`,3000);
+    }
+  } else if(_puzState.poi){
+    _puzState.poi.cooldown=300; // 5-second retry cooldown
+    setTimeout(()=>{if(_puzState.poi)_puzState.poi.cooldown=0;},5000);
+  }
+  _puzState={};
+  show('explore');startLoop();
+}
+
+function stopPuzTimer(){clearInterval(_puzTimer);_puzTimer=null;}
+
+// ── Math Blitz ─────────────────────────────────────────────────
+let _mathQ=0,_mathScore=0;
+function startMathPuzzle(){
+  _mathQ=0;_mathScore=0;
+  showMathQuestion();
+  startPuzTimer(18);
+}
+function showMathQuestion(){
+  if(_mathQ>=3){endMathPuzzle();return;}
+  document.getElementById('puz-math-progress').textContent=`Q ${_mathQ+1}/3`;
+  const ops=['+','-','×'];
+  const op=ops[Math.floor(Math.random()*ops.length)];
+  let a=Math.floor(Math.random()*12)+2;
+  let b=Math.floor(Math.random()*12)+2;
+  let ans;
+  if(op==='+')ans=a+b;
+  else if(op==='-'){ans=a-b;if(ans<0){b=Math.floor(Math.random()*a);ans=a-b;}}
+  else{a=Math.floor(Math.random()*9)+2;b=Math.floor(Math.random()*9)+2;ans=a*b;}
+  document.getElementById('puz-math-q').textContent=`${a} ${op} ${b} = ?`;
+  const opts=document.getElementById('puz-math-opts');
+  opts.innerHTML='';
+  document.getElementById('puz-math-result').textContent='';
+  // Generate 4 options
+  const choices=new Set([ans]);
+  while(choices.size<4){choices.add(ans+Math.floor(Math.random()*10)-5);}
+  const arr=Array.from(choices).sort(()=>Math.random()-.5);
+  arr.forEach(v=>{
+    const b2=document.createElement('button');
+    b2.className='puz-choice';b2.textContent=v;
+    b2.onclick=()=>checkMathAnswer(v,ans,b2,arr,opts);
+    opts.appendChild(b2);
+  });
+}
+function checkMathAnswer(val,correct,btn,arr,opts){
+  opts.querySelectorAll('.puz-choice').forEach(b2=>b2.disabled=true);
+  if(val===correct){btn.classList.add('correct');_mathScore++;document.getElementById('puz-math-result').style.color='#4caf50';document.getElementById('puz-math-result').textContent='✅ Correct!';}
+  else{btn.classList.add('wrong');opts.querySelectorAll('.puz-choice').forEach((b2,i)=>{if(parseInt(b2.textContent)===correct)b2.classList.add('correct');});document.getElementById('puz-math-result').style.color='#f44336';document.getElementById('puz-math-result').textContent='❌ Wrong!';}
+  _mathQ++;setTimeout(showMathQuestion,900);
+}
+function endMathPuzzle(){
+  stopPuzTimer();
+  if(_mathScore>=2)showPuzReward(`✅ ${_mathScore}/3 correct! Puzzle solved!`);
+  else showPuzFail(`❌ Only ${_mathScore}/3 correct. Need 2 to pass.`);
+}
+
+// ── Memory Grid ─────────────────────────────────────────────────
+let _memTarget=[],_memSelected=[];
+const MEM_EMOJIS=['🔥','💧','🌿','⚡','❄️','🌙','☀️','💀','🔮'];
+function startMemoryPuzzle(){
+  const grid=document.getElementById('puz-mem-grid');
+  grid.innerHTML='';
+  _memTarget=[];_memSelected=[];
+  const count=3+G.biomeIdx; // 3-6 tiles to remember based on biome difficulty
+  const allIdx=[0,1,2,3,4,5,6,7,8];
+  while(_memTarget.length<Math.min(count,4)){
+    const r=allIdx.splice(Math.floor(Math.random()*allIdx.length),1)[0];
+    _memTarget.push(r);
+  }
+  const cellEmojis=MEM_EMOJIS.slice(0,9);
+  for(let i=0;i<9;i++){
+    const c=document.createElement('div');
+    c.className='puz-cell';c.dataset.idx=i;
+    c.style.background='#1a1a2e';
+    c.style.fontSize='22px';
+    c.textContent='';
+    c.onclick=()=>memCellClick(i,c);
+    grid.appendChild(c);
+  }
+  document.getElementById('puz-mem-msg').textContent='WATCH THE PATTERN';
+  document.getElementById('puz-mem-result').textContent='';
+  // Flash pattern
+  setTimeout(()=>flashMemPattern(cellEmojis),400);
+}
+function flashMemPattern(emojis){
+  const cells=document.querySelectorAll('#puz-mem-grid .puz-cell');
+  // Show pattern
+  cells.forEach((c,i)=>{
+    if(_memTarget.includes(i)){c.classList.add('lit');c.textContent=emojis[i];}
+  });
+  setTimeout(()=>{
+    cells.forEach(c=>{c.classList.remove('lit');c.textContent='';c.style.background='#1a1a2e';});
+    document.getElementById('puz-mem-msg').textContent='NOW CLICK THE PATTERN!';
+    startPuzTimer(10);
+  },1800);
+}
+function memCellClick(idx,cell){
+  if(_memSelected.includes(idx))return;
+  _memSelected.push(idx);
+  cell.style.background='#2a2a6e';cell.textContent='?';
+  if(_memSelected.length===_memTarget.length){
+    stopPuzTimer();
+    const correct=_memTarget.every(i=>_memSelected.includes(i));
+    const cells=document.querySelectorAll('#puz-mem-grid .puz-cell');
+    cells.forEach((c,i)=>{
+      if(_memTarget.includes(i)){c.classList.add(correct?'correct':'wrong');c.textContent=MEM_EMOJIS[i];}
+      else if(_memSelected.includes(i)&&!_memTarget.includes(i)){c.classList.add('wrong');}
+    });
+    setTimeout(()=>{
+      if(correct)showPuzReward('🧠 Perfect recall! Puzzle solved!');
+      else showPuzFail('❌ Wrong pattern. Try again later.');
+    },800);
+  }
+}
+
+// ── Word Cipher ─────────────────────────────────────────────────
+function startCipherPuzzle(){
+  const q=CIPHER_QS[Math.floor(Math.random()*CIPHER_QS.length)];
+  document.getElementById('puz-cipher-q').textContent=q.q;
+  const opts=document.getElementById('puz-cipher-opts');
+  opts.innerHTML='';
+  document.getElementById('puz-cipher-result').textContent='';
+  // Shuffle options
+  const order=[0,1,2,3].sort(()=>Math.random()-.5);
+  const correctInOrder=order.indexOf(q.a);
+  order.forEach((origIdx,newIdx)=>{
+    const b=document.createElement('button');
+    b.className='puz-choice';
+    b.textContent=`${['A','B','C','D'][newIdx]}. ${q.o[origIdx]}`;
+    b.onclick=()=>{
+      opts.querySelectorAll('.puz-choice').forEach(x=>x.disabled=true);
+      const isCorrect=origIdx===q.a;
+      if(isCorrect){b.classList.add('correct');stopPuzTimer();setTimeout(()=>showPuzReward('🔮 Riddle solved! Puzzle complete!'),600);}
+      else{b.classList.add('wrong');opts.querySelectorAll('.puz-choice').forEach((x,ni)=>{if(order[ni]===q.a)x.classList.add('correct');});document.getElementById('puz-cipher-result').style.color='#f44336';document.getElementById('puz-cipher-result').textContent='❌ Wrong answer.';stopPuzTimer();setTimeout(()=>showPuzFail('Better luck next time...'),800);}
+    };
+    opts.appendChild(b);
+  });
+  startPuzTimer(20);
+}
+
+// ── Shared puzzle helpers ───────────────────────────────────────
+function startPuzTimer(seconds){
+  stopPuzTimer();
+  let t=seconds;
+  const fill=document.getElementById('puz-timer-fill');
+  _puzTimer=setInterval(()=>{
+    t--;
+    const pct=t/seconds*100;
+    fill.style.width=pct+'%';
+    fill.style.background=pct>50?'#4caf50':pct>25?'#ff9800':'#f44336';
+    if(t<=0){stopPuzTimer();puzTimeOut();}
+  },1000);
+}
+function puzTimeOut(){
+  if(_puzState.type==='math')endMathPuzzle();
+  else if(_puzState.type==='memory')showPuzFail('⏰ Time\'s up!');
+  else showPuzFail('⏰ Time\'s up!');
+}
+function showPuzReward(msg){
+  _puzState.done=true;
+  document.getElementById('puz-math').style.display='none';
+  document.getElementById('puz-memory').style.display='none';
+  document.getElementById('puz-cipher').style.display='none';
+  document.getElementById('puz-skip').style.display='none';
+  const panel=document.getElementById('puz-reward-panel');
+  document.getElementById('puz-reward-text').textContent=msg+'\n\nYou earned a reward!';
+  panel.style.display='block';
+}
+function showPuzFail(msg){
+  _puzState.done=true;
+  document.getElementById('puz-math').style.display='none';
+  document.getElementById('puz-memory').style.display='none';
+  document.getElementById('puz-cipher').style.display='none';
+  document.getElementById('puz-skip').style.display='none';
+  document.getElementById('puz-fail-panel').style.display='block';
+  document.getElementById('puz-fail-panel').querySelector('div').textContent=msg;
+}
+
+// ================================================================
+// INTRO (updated with sentinel hint)
 // ================================================================
 function showIntro(){
   const b=BIOMES[G.biomeIdx];
@@ -2240,8 +3091,11 @@ function showIntro(){
   const ug=b.enemies.find(e=>e.unique);
   document.getElementById('intro-tip').innerHTML=
     `Enemies: <strong style="color:${b.eColor}">${etypes}</strong><br>`+
+    `<span style="color:#ff9800">⚔️ Sentinels must be defeated before challenging the Guardian</span><br>`+
     (ug?`<span style="color:#ffd700">🔑 Guardian: <strong>${ug.name}</strong> — defeat to unlock boss</span><br>`:'') +
-    `Boss: <strong style="color:#ff4444">${b.boss.name}</strong><br><br>Town (green ring) heals you`;
+    `Boss: <strong style="color:#ff4444">${b.boss.name}</strong><br>`+
+    `<span style="color:#44ffcc">💧 Healing Fountains restore 25% HP</span><br>`+
+    `<span style="color:#ffd700">🔮 Explore caves & shrines for puzzle rewards</span><br><br>Town (green ring) heals you`;
   document.getElementById('intro-go').style.color=b.eColor;
   document.getElementById('intro-go').style.borderColor=b.eColor;
   document.getElementById('intro-overlay').style.display='flex';
@@ -2259,6 +3113,8 @@ window.addEventListener('keydown',e=>{
     else if(G.screen==='inventory'){show('explore');startLoop();}
   }
   if((e.key==='i'||e.key==='I')&&G.screen==='explore'){showInventory();}
+  // E key to enter puzzle POI
+  if((e.key==='e'||e.key==='E')&&G.screen==='explore'&&G.nearPuzzle){openPuzzle();}
 });
 window.addEventListener('keyup',e=>G.keys.delete(e.key.toLowerCase()));
 
@@ -2283,6 +3139,11 @@ function beginCombat(enemy){
     return;
   }
   stopLoop();
+  // Freeze enemy positions — snapshot every living enemy's position
+  // so we can restore them after combat ends (prevents swarm ambushes)
+  G._enemySnapshot = G.enemies
+    .filter(e => !e.dead && e.id !== enemy.id)
+    .map(e => ({id: e.id, x: e.x, y: e.y, dx: e.dx, dy: e.dy}));
   const b=BIOMES[G.biomeIdx];
   G.eid=enemy.id;G.eBoss=enemy.boss;G.eUnique=!!enemy.unique;
   G.eHp=enemy.hp;G.eMaxHp=enemy.maxHp;
@@ -2318,6 +3179,17 @@ function beginCombat(enemy){
   // Play battle music
   if(enemy.boss || enemy.unique) AudioEngine.playBoss();
   else AudioEngine.playBattle();
+}
+
+// Restore enemy positions from the pre-combat snapshot so they
+// don't swarm the player while the battle screen was open.
+function restoreEnemyPositions(){
+  if(!G._enemySnapshot) return;
+  G._enemySnapshot.forEach(snap=>{
+    const e=G.enemies.find(e=>e.id===snap.id&&!e.dead);
+    if(e){e.x=snap.x;e.y=snap.y;e.dx=snap.dx;e.dy=snap.dy;}
+  });
+  G._enemySnapshot=null;
 }
 
 function refreshBars(){
@@ -2360,6 +3232,7 @@ document.getElementById('flee-btn').onclick=()=>{
   stopTimer();
   const e=G.enemies.find(e=>e.id===G.eid);
   if(e){e.x=clamp(e.x+150,60,WW-60);e.y=clamp(e.y+100,60,WH-60);}
+  restoreEnemyPositions();
   resetAggro();
   show('explore');startLoop();
 };
@@ -2489,6 +3362,17 @@ function endCombat(won){
   const e=G.enemies.find(e=>e.id===G.eid);
   if(e) e.dead=true;
 
+  // Track sentinel kills
+  if(won && e && e.gatekeeper){
+    G.gatekeepersKilled=(G.gatekeepersKilled||0)+1;
+    const remaining=G.enemies.filter(en=>en.gatekeeper&&!en.dead).length;
+    if(remaining===0){
+      showItemDrop('⚔️ All Sentinels defeated! Guardian can now be challenged!',3500);
+    } else {
+      showItemDrop(`⚔️ Sentinel defeated! ${remaining} remaining!`,2500);
+    }
+  }
+
   if(won){
     // XP reward
     const xp=xpReward(G.cEnemyType, G.eBoss, G.eUnique);
@@ -2519,6 +3403,7 @@ function endCombat(won){
     }
     show('explore');
     G.bossUnlockFlash=180;
+    restoreEnemyPositions();
     // Show drops then maybe level up
     _showPendingDrops(()=>{
       if(G.pendingLevelUp) showLevelUp();
@@ -2530,14 +3415,18 @@ function endCombat(won){
   if(won && G.eBoss){
     AudioEngine.sfxWinBoss();
     G.defeated.add(G.biomeIdx);
+    const advanceBiome = ()=>{
+      if(G.defeated.size>=4){ show('victory'); initVictory(); }
+      else{ G.biomeIdx++; initWorld(); show('explore'); layoutUI(); showIntro(); }
+    };
     _showPendingDrops(()=>{
-      if(G.pendingLevelUp){showLevelUp();return;}
-      if(G.defeated.size>=4){show('victory');initVictory();}
-      else{G.biomeIdx++;initWorld();show('explore');layoutUI();showIntro();}
+      if(G.pendingLevelUp){ G._postLevelUp=advanceBiome; showLevelUp(); return; }
+      advanceBiome();
     });
   } else {
     if(won) AudioEngine.sfxWinNormal();
     show('explore');
+    restoreEnemyPositions();
     _showPendingDrops(()=>{
       if(G.pendingLevelUp) showLevelUp();
       else startLoop();
@@ -3209,22 +4098,90 @@ function cheatMaxHP(){
 }
 
 function cheatKillAll(){
+  if(!G.player){ cheatStatus('⚠ No player yet'); return; }
   if(!G.enemies.length){ cheatStatus('⚠ No enemies on map'); return; }
-  let killed = 0;
-  G.enemies.forEach(e => { if(!e.dead && !e.boss){ e.dead = true; killed++; } });
+
+  // Close panel and stop the loop cleanly before touching game state
+  document.getElementById('cheat-panel').style.display = 'none';
+  stopLoop();
+
+  let totalXP = 0;
+  let hasBoss = false;
+
+  // Kill every living enemy and accumulate rewards
+  G.enemies.forEach(e => {
+    if(e.dead) return;
+    e.dead = true;
+
+    const xp = xpReward(e.etype, e.boss, !!e.unique);
+    totalXP += xp;
+
+    const dropKey = e.boss ? 'boss' : e.unique ? 'unique' : e.gatekeeper ? 'hard' : (e.etype.type||'easy');
+    const drops = rollDrops(dropKey);
+    drops.forEach(itemId => {
+      const item = ITEMS.find(i => i.id === itemId);
+      if(!item) return;
+      if(!G.player.inventory) G.player.inventory = [];
+      G.player.inventory.push(itemId);
+      G.pendingDrops.push(item);
+    });
+
+    if(e.boss) hasBoss = true;
+  });
+
+  // State flags
+  G.uniqueKilled = true;
+  G.gatekeepersKilled = G.gatekeepersNeeded;
+  G._gkDialogueShown = false;
+  G._bossDialogueShown = false;
   resetAggro();
-  cheatStatus('✔ Killed ' + killed + ' enemies');
+  G.player.hp = G.player.maxHp;
+
+  // Grant XP
+  gainXP(totalXP);
+
+  if(hasBoss){
+    AudioEngine.sfxWinBoss();
+    G.defeated.add(G.biomeIdx);
+
+    const advanceBiome = ()=>{
+      if(G.defeated.size >= 4){ show('victory'); initVictory(); }
+      else{ G.biomeIdx++; initWorld(); show('explore'); layoutUI(); showIntro(); }
+    };
+
+    _showPendingDrops(()=>{
+      if(G.pendingLevelUp){ G._postLevelUp = advanceBiome; showLevelUp(); return; }
+      advanceBiome();
+    });
+  } else {
+    AudioEngine.sfxWinNormal();
+    show('explore');
+    _showPendingDrops(()=>{
+      if(G.pendingLevelUp){ G._postLevelUp = ()=>{ show('explore'); startLoop(); }; showLevelUp(); return; }
+      startLoop();
+    });
+  }
 }
 
 function cheatUnlockBoss(){
-  const boss = G.enemies.find(e => e.boss && !e.dead);
-  if(!boss){ cheatStatus('⚠ No locked boss found'); return; }
-  boss.locked = false;
-  boss.dx = (Math.random()-.5)*1.2;
-  boss.dy = (Math.random()-.5)*1.2;
+  if(!G.player){ cheatStatus('⚠ No player yet'); return; }
+  // Kill all sentinels and mark unique as defeatable
+  G.enemies.forEach(e => {
+    if(e.gatekeeper && !e.dead){ e.dead = true; }
+  });
+  G.gatekeepersKilled = G.gatekeepersNeeded;
   G.uniqueKilled = true;
+  G._gkDialogueShown = false;
+  // Unlock the boss
+  const boss = G.enemies.find(e => e.boss && !e.dead);
+  if(boss){
+    boss.locked = false;
+    boss.dx = (Math.random()-.5)*1.2;
+    boss.dy = (Math.random()-.5)*1.2;
+    G.bossUnlockFlash = 180;
+  }
   updateHUD();
-  cheatStatus('✔ Boss unlocked!');
+  cheatStatus(boss ? '✔ Boss unlocked + Sentinels cleared!' : '⚠ No living boss found (already defeated?)');
 }
 
 function cheatLevelUp(){
